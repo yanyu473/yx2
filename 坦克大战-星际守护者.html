@@ -1,0 +1,3793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#05060f" />
+<title>坦克大战 · 星际守护者</title>
+<style>
+/* =====================================================================
+ * style.css — 坦克大战·星际守护者  科幻界面样式
+ *   深空蓝 + 霓虹青/紫/品红 配色，全屏覆盖层界面
+ * ===================================================================== */
+:root {
+  --bg: #05060f;
+  --bg2: #0a0f1f;
+  --panel: rgba(12, 20, 40, 0.78);
+  --panel-bd: rgba(80, 160, 255, 0.35);
+  --cyan: #3ad1ff;
+  --cyan-soft: #9bf6ff;
+  --magenta: #ff3a6b;
+  --purple: #c06bff;
+  --green: #7cff8a;
+  --gold: #ffd24a;
+  --text: #eaf2ff;
+  --text-dim: #8fa8c8;
+  --neon: 0 0 8px var(--cyan), 0 0 22px rgba(58, 209, 255, 0.45);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+body {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  color: var(--text); user-select: none; -webkit-user-select: none;
+  cursor: default;
+}
+
+#game { position: fixed; inset: 0; display: block; z-index: 0; }
+#ui-root { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+/* 仅可见屏幕/确认框/技能按钮捕获事件，其余覆盖层透传给画布 */
+
+/* ---------- 屏幕通用 ---------- */
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px; padding: 40px 20px;
+  background: radial-gradient(circle at 50% 30%, rgba(40,80,160,0.18), rgba(2,4,12,0) 60%),
+              linear-gradient(180deg, rgba(4,6,15,0.55), rgba(4,6,15,0.85));
+  opacity: 0; pointer-events: none; visibility: hidden;
+  transition: opacity .45s ease, transform .45s ease, visibility .45s;
+  transform: scale(0.98);
+  overflow-y: auto;
+}
+.screen.show { opacity: 1; pointer-events: auto; visibility: visible; transform: scale(1); }
+.screen::-webkit-scrollbar { width: 6px; }
+.screen::-webkit-scrollbar-thumb { background: var(--panel-bd); border-radius: 3px; }
+
+/* ---------- 标题 ---------- */
+.game-title {
+  font-weight: 800; letter-spacing: 4px; font-size: clamp(34px, 6vw, 64px);
+  color: #fff; text-align: center; line-height: 1.05;
+  text-shadow: 0 0 18px rgba(58,209,255,.7), 0 0 40px rgba(192,107,255,.5);
+}
+.game-title .sub {
+  display: block; font-size: 0.42em; letter-spacing: 10px; margin-top: 8px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple), var(--magenta));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: hueShift 8s linear infinite;
+}
+.game-title.big { animation: titleFloat 5s ease-in-out infinite; }
+.game-tagline { color: var(--cyan-soft); letter-spacing: 3px; font-size: 14px; opacity: .85; }
+.screen-title {
+  font-weight: 700; letter-spacing: 3px; font-size: clamp(24px, 4vw, 36px);
+  color: var(--cyan-soft); text-shadow: 0 0 14px rgba(58,209,255,.6); text-align: center;
+}
+.screen-title .ach-count { font-size: 0.5em; color: var(--gold); margin-left: 10px; }
+
+@keyframes hueShift { to { filter: hue-rotate(360deg); } }
+@keyframes titleFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+/* ---------- 按钮 ---------- */
+.menu-btns { display: flex; flex-direction: column; gap: 14px; width: min(320px, 80vw); }
+.tg-btn {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 12px 22px; border-radius: 8px; cursor: pointer; overflow: hidden;
+  color: var(--text); font-family: inherit;
+  background: linear-gradient(100deg, rgba(20,40,80,.85), rgba(10,16,34,.85));
+  border: 1px solid var(--panel-bd);
+  box-shadow: inset 0 0 12px rgba(58,209,255,.12), 0 4px 18px rgba(0,0,0,.4);
+  transition: transform .18s ease, box-shadow .18s, border-color .18s;
+}
+.tg-btn::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, var(--cyan), var(--purple));
+  box-shadow: 0 0 10px var(--cyan);
+}
+.tg-btn-label { font-size: 18px; font-weight: 700; letter-spacing: 2px; }
+.tg-btn-sub { font-size: 10px; letter-spacing: 4px; color: var(--text-dim); }
+.tg-btn:hover { transform: translateX(6px); border-color: var(--cyan); box-shadow: 0 0 20px rgba(58,209,255,.35), inset 0 0 16px rgba(58,209,255,.18); }
+.tg-btn:active { transform: translateX(3px) scale(.99); }
+
+.screen-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.screen-actions .tg-btn { min-width: 130px; align-items: center; }
+
+.menu-bg-glow { position: absolute; width: 70vw; height: 70vw; max-width: 700px; max-height: 700px;
+  border-radius: 50%; background: radial-gradient(circle, rgba(58,209,255,.12), transparent 60%);
+  filter: blur(8px); animation: pulse 6s ease-in-out infinite; pointer-events: none; z-index: -1; }
+@keyframes pulse { 0%,100% { transform: scale(1); opacity: .6; } 50% { transform: scale(1.12); opacity: 1; } }
+/* ---------- 流星动画层（仅主菜单） ---------- */
+.meteor-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+
+/* 单颗流星：细线 + 渐变拖尾 + 发光头部 */
+.meteor {
+  position: absolute;
+  width: 160px; height: 2px;
+  background: linear-gradient(to right, transparent, rgba(58,209,255,.15) 20%, rgba(155,246,255,.6) 65%, rgba(255,255,255,.95) 100%);
+  border-radius: 2px;
+  opacity: 0;
+  filter: drop-shadow(0 0 4px rgba(155,246,255,.5));
+}
+/* 流星头部光点 */
+.meteor::after {
+  content: ""; position: absolute; right: -1px; top: 50%;
+  transform: translateY(-50%);
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px 2px rgba(155,246,255,.8), 0 0 18px 4px rgba(58,209,255,.3);
+}
+/* 流星划过动画：沿旋转方向平移，淡入淡出 */
+@keyframes meteorStreak {
+  0%   { opacity: 0; transform: rotate(var(--rot)) translateX(0); }
+  8%   { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--rot)) translateX(var(--dist)); }
+}
+
+.menu-foot { position: absolute; bottom: 24px; color: var(--text-dim); font-size: 13px; letter-spacing: 1px; }
+
+/* ---------- Loading ---------- */
+.load-wrap { display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.load-ring { width: 86px; height: 86px; border-radius: 50%;
+  border: 4px solid rgba(58,209,255,.15); border-top-color: var(--cyan); border-right-color: var(--purple);
+  animation: spin 1s linear infinite; box-shadow: 0 0 24px rgba(58,209,255,.4); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-bar { width: min(320px, 70vw); height: 8px; background: rgba(20,40,80,.6); border-radius: 4px; overflow: hidden; border: 1px solid var(--panel-bd); }
+.load-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--purple)); box-shadow: 0 0 12px var(--cyan); transition: width .3s; }
+.load-tip { color: var(--cyan-soft); letter-spacing: 2px; font-size: 13px; }
+
+/* ---------- 角色选择卡片 ---------- */
+.char-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; width: min(900px, 94vw); }
+.char-card {
+  position: relative; padding: 18px 16px 16px; border-radius: 14px; cursor: pointer;
+  background: linear-gradient(160deg, rgba(18,30,55,.9), rgba(8,12,26,.9));
+  border: 1px solid var(--panel-bd); text-align: center;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.char-card::after { content: ""; position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
+  background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,.08) 50%, transparent 60%); opacity: 0; transition: opacity .3s; }
+.char-card:hover { transform: translateY(-6px); border-color: var(--cc); box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 18px var(--cc); }
+.char-card:hover::after { opacity: 1; }
+.char-card.selected { border-color: var(--cc); box-shadow: 0 0 0 2px var(--cc), 0 0 26px var(--cc); }
+.char-avatar { display: flex; justify-content: center; margin-bottom: 6px; }
+.char-avatar canvas { background: radial-gradient(circle, rgba(58,209,255,.08), transparent 70%); border-radius: 10px; }
+.char-card h3 { font-size: 20px; color: var(--cc); text-shadow: 0 0 10px var(--cc); }
+.char-title { color: var(--text-dim); font-size: 11px; letter-spacing: 1px; margin: 2px 0 8px; }
+.char-tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 10px; letter-spacing: 2px;
+  background: rgba(58,209,255,.12); border: 1px solid var(--cc); color: var(--cc); margin-bottom: 10px; }
+.char-stats { text-align: left; display: flex; flex-direction: column; gap: 5px; margin: 8px 0; }
+.stat { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-dim); }
+.stat span { width: 36px; }
+.stat .bar { flex: 1; height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.stat .bar i { display: block; height: 100%; border-radius: 3px; box-shadow: 0 0 6px currentColor; }
+.char-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; margin-top: 6px; min-height: 32px; }
+
+/* ---------- 关卡选择 ---------- */
+.level-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; width: min(900px, 94vw); }
+.level-card { padding: 0 0 16px; border-radius: 14px; cursor: pointer; overflow: hidden; text-align: center;
+  background: linear-gradient(160deg, rgba(18,30,55,.9), rgba(8,12,26,.9)); border: 1px solid var(--panel-bd);
+  transition: transform .2s, box-shadow .2s, border-color .2s; }
+.level-card:hover { transform: translateY(-5px); border-color: var(--cyan); box-shadow: 0 8px 28px rgba(0,0,0,.5), 0 0 16px var(--cyan); }
+.level-card.selected { border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan), 0 0 22px var(--cyan); }
+.level-thumb { position: relative; }
+.level-thumb canvas { display: block; width: 100%; }
+.level-tag { position: absolute; top: 6px; right: 8px; color: var(--gold); font-size: 12px; text-shadow: 0 0 8px var(--gold); }
+.level-card h3 { font-size: 18px; color: var(--cyan-soft); margin: 8px 0 4px; }
+.level-card p { font-size: 11px; color: var(--text-dim); padding: 0 14px; line-height: 1.5; }
+
+/* ---------- 设置 ---------- */
+.settings { display: flex; flex-direction: column; gap: 16px; width: min(360px, 88vw); }
+.set-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px;
+  background: var(--panel); border: 1px solid var(--panel-bd); border-radius: 8px; }
+.set-row span { letter-spacing: 2px; }
+.set-row input[type=range] { width: 180px; accent-color: var(--cyan); }
+.switch { position: relative; width: 46px; height: 24px; display: inline-block; }
+.switch input { display: none; }
+.switch i { position: absolute; inset: 0; background: rgba(255,255,255,.12); border-radius: 12px; transition: .2s; border: 1px solid var(--panel-bd); }
+.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #cfe; transition: .2s; box-shadow: 0 0 8px rgba(0,0,0,.5); }
+.switch input:checked + i { background: rgba(58,209,255,.35); border-color: var(--cyan); }
+.switch input:checked + i::after { left: 24px; background: var(--cyan-soft); box-shadow: 0 0 10px var(--cyan); }
+
+/* ---------- HUD ---------- */
+.hud { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s; z-index: 5; }
+.hud.show { opacity: 1; }
+.hud-top, .hud-bot { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 18px; padding: 12px 18px; }
+.hud-top { top: 0; justify-content: space-between; }
+.hud-bot { bottom: 0; flex-wrap: wrap; justify-content: space-between; }
+.hud-top > div { display: flex; flex-direction: column; gap: 3px; }
+.hud-top span { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); }
+.hud-top b { font-size: 20px; color: var(--cyan-soft); text-shadow: 0 0 8px rgba(58,209,255,.6); }
+.hud-best b { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
+.hud-tension { min-width: 160px; }
+.t-bar { width: 160px; height: 8px; background: rgba(255,255,255,.1); border-radius: 4px; overflow: hidden; border: 1px solid var(--panel-bd); }
+.t-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), var(--gold), var(--magenta)); transition: width .3s; }
+
+/* 双人 HUD 玩家区块 */
+.hud-player-block { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+.hud-player-block.p2 { display: none; } /* 默认隐藏 P2，双人模式时由 JS 显示 */
+.hud-player-label { font-size: 14px; font-weight: 800; letter-spacing: 2px; color: var(--cyan);
+  padding: 4px 8px; border: 1px solid var(--cyan); border-radius: 6px; text-shadow: 0 0 8px var(--cyan); }
+.hud-player-block.p2 .hud-player-label { color: var(--magenta); border-color: var(--magenta); text-shadow: 0 0 8px var(--magenta); }
+.hud-hp { display: flex; flex-direction: column; gap: 3px; }
+.hud-hp span { font-size: 10px; letter-spacing: 2px; color: var(--text-dim); }
+
+.hp-bar { position: relative; width: 220px; height: 18px; background: rgba(255,255,255,.08); border-radius: 9px; overflow: hidden; border: 1px solid var(--panel-bd); }
+.hp-bar i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--magenta), var(--gold), var(--green)); transition: width .2s; }
+.hp-bar small { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; text-shadow: 0 0 4px #000; }
+
+.hud-skills { display: flex; gap: 10px; pointer-events: auto; }
+.skill { position: relative; width: 60px; height: 60px; border-radius: 10px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--panel-bd); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  transition: border-color .2s, box-shadow .2s; overflow: hidden; }
+.skill:hover { border-color: var(--cyan); box-shadow: 0 0 14px rgba(58,209,255,.4); }
+.skill .sk-key { position: absolute; top: 2px; left: 5px; font-size: 10px; color: var(--gold); }
+.skill .sk-name { font-size: 11px; color: var(--cyan-soft); letter-spacing: 1px; }
+.skill .sk-cd { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(0,0,0,.65); transition: height .1s linear; }
+.skill.cooling { border-color: rgba(120,120,140,.5); }
+.skill.cooling .sk-name { color: var(--text-dim); }
+.skill.active { border-color: var(--cyan); box-shadow: 0 0 18px var(--cyan); animation: skillPulse 1s ease-in-out infinite; }
+@keyframes skillPulse { 50% { box-shadow: 0 0 26px var(--cyan); } }
+
+.hud-combo { position: absolute; right: 18px; bottom: 90px; font-size: 26px; font-weight: 800; color: var(--gold);
+  text-shadow: 0 0 14px var(--gold); opacity: 0; transition: opacity .2s; letter-spacing: 2px; }
+
+/* ---------- 提示条 / 成就弹窗 ---------- */
+.toast { position: absolute; top: 60px; left: 50%; transform: translateX(-50%) translateY(-10px);
+  padding: 8px 18px; background: var(--panel); border: 1px solid var(--cyan); border-radius: 20px;
+  color: var(--cyan-soft); font-size: 13px; letter-spacing: 1px; opacity: 0; pointer-events: none;
+  box-shadow: 0 0 16px rgba(58,209,255,.3); transition: opacity .25s, transform .25s; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.ach-toast { position: absolute; top: 90px; right: 18px; display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: linear-gradient(120deg, rgba(40,28,10,.92), rgba(20,12,30,.92));
+  border: 1px solid var(--gold); border-radius: 12px; box-shadow: 0 0 22px rgba(255,210,74,.35);
+  opacity: 0; transform: translateX(120%); transition: opacity .4s, transform .4s; pointer-events: none; max-width: 280px; }
+.ach-toast.show { opacity: 1; transform: translateX(0); }
+.ach-toast-ico { font-size: 30px; color: var(--gold); text-shadow: 0 0 12px var(--gold); }
+.ach-toast b { font-size: 12px; color: var(--gold); letter-spacing: 2px; }
+.ach-toast p { font-size: 15px; color: #fff; }
+.ach-toast small { font-size: 10px; color: var(--text-dim); }
+
+/* ---------- 确认框 ---------- */
+.confirm { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(2,4,12,.6); opacity: 0; pointer-events: none; backdrop-filter: blur(3px); transition: opacity .25s; z-index: 30; }
+.confirm.show { opacity: 1; pointer-events: auto; }
+.confirm-box { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 28px 36px;
+  background: var(--panel); border: 1px solid var(--magenta); border-radius: 14px; box-shadow: 0 0 30px rgba(255,58,107,.35); }
+.confirm-box h3 { font-size: 18px; color: #fff; text-align: center; }
+.confirm-btns { display: flex; gap: 14px; }
+
+/* ---------- Boss 出场 CG ---------- */
+.boss-cg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; z-index: 20; }
+.boss-cg.show { opacity: 1; animation: bcgShow 2.6s ease forwards; }
+@keyframes bcgShow { 0% { opacity: 0; } 8% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.boss-cg-flash { position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,58,107,.5), transparent 60%); animation: bcgFlash .5s ease-out 2; }
+@keyframes bcgFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+.boss-cg-lines { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 8px, rgba(255,58,107,.06) 8px 9px); animation: bcgLines 1.2s linear infinite; }
+@keyframes bcgLines { to { transform: translateY(9px); } }
+.boss-cg-text { text-align: center; position: relative; }
+.bcg-warn { color: var(--magenta); letter-spacing: 6px; font-size: 18px; animation: bcgBlink .5s steps(2) infinite; }
+@keyframes bcgBlink { 50% { opacity: .3; } }
+.bcg-name { font-size: clamp(40px, 8vw, 84px); font-weight: 900; letter-spacing: 6px; color: #fff;
+  text-shadow: 0 0 24px var(--magenta), 0 0 60px var(--purple); animation: bcgZoom 2.6s ease; }
+.bcg-title { color: var(--cyan-soft); letter-spacing: 4px; font-size: 16px; margin-top: 8px; }
+@keyframes bcgZoom { 0% { transform: scale(2.4); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
+/* ---------- 结算 ---------- */
+.res-wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; width: min(560px, 92vw); }
+.res-banner { font-size: clamp(38px, 7vw, 64px); font-weight: 900; letter-spacing: 8px; animation: resIn .6s ease; }
+.res-banner.win { color: var(--green); text-shadow: 0 0 24px var(--green), 0 0 50px var(--cyan); }
+.res-banner.lose { color: var(--magenta); text-shadow: 0 0 24px var(--magenta); }
+@keyframes resIn { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.res-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.res-stats > div { display: flex; flex-direction: column; gap: 4px; align-items: center; padding: 10px;
+  background: var(--panel); border: 1px solid var(--panel-bd); border-radius: 8px; }
+.res-stats span { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; }
+.res-stats b { font-size: 22px; color: var(--cyan-soft); }
+.res-ach { width: 100%; }
+.res-ach h4 { color: var(--gold); letter-spacing: 2px; margin-bottom: 8px; text-align: center; }
+.res-ach-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--panel); border: 1px solid var(--gold);
+  border-radius: 8px; margin-bottom: 6px; animation: resIn .5s ease; }
+.res-ach-item .ach-ico { font-size: 24px; color: var(--gold); }
+.res-ach-item b { color: #fff; } .res-ach-item small { color: var(--text-dim); font-size: 11px; }
+
+/* ---------- 勋章展馆 ---------- */
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; width: min(900px, 94vw); }
+.ach-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--panel-bd); transition: transform .2s, box-shadow .2s; }
+.ach-card:hover { transform: translateY(-3px); }
+.ach-card.got { border-color: var(--gold); box-shadow: 0 0 16px rgba(255,210,74,.25); }
+.ach-card.locked { opacity: .5; }
+.ach-ico { font-size: 30px; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: rgba(255,210,74,.12); color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+.ach-ico.lock { color: var(--text-dim); background: rgba(255,255,255,.05); text-shadow: none; }
+.ach-info b { font-size: 15px; color: #fff; }
+.ach-info p { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+.ach-info small { font-size: 10px; color: var(--gold); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 600px) {
+  .hud-top, .hud-bot { gap: 10px; padding: 8px; }
+  .hud-tension, .t-bar { min-width: 100px; width: 100px; }
+  .hp-bar { width: 150px; }
+  .skill { width: 50px; height: 50px; }
+  .res-stats { grid-template-columns: repeat(2, 1fr); }
+  .mode-grid { grid-template-columns: 1fr !important; }
+  .tutorial-wrap { padding: 12px; }
+  .timeline-card { flex-direction: column !important; }
+}
+
+/* ---------- 屏幕提示文字 ---------- */
+.screen-hint { color: var(--text-dim); font-size: 13px; letter-spacing: 2px; margin-top: -8px; }
+
+/* ---------- 模式选择 ---------- */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; width: min(800px, 94vw); }
+.mode-card {
+  position: relative; padding: 24px 18px; border-radius: 14px; cursor: pointer; text-align: center;
+  background: linear-gradient(160deg, rgba(18,30,55,.9), rgba(8,12,26,.9));
+  border: 1px solid var(--panel-bd);
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.mode-card:hover { transform: translateY(-6px); border-color: var(--cyan); box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 18px var(--cyan); }
+.mode-card.selected { border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan), 0 0 26px var(--cyan); }
+.mode-icon { font-size: 40px; margin-bottom: 10px; }
+.mode-card h3 { font-size: 20px; color: var(--cyan-soft); margin-bottom: 6px; }
+.mode-tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 10px; letter-spacing: 2px;
+  background: rgba(58,209,255,.12); border: 1px solid var(--cyan); color: var(--cyan); margin-bottom: 10px; }
+.mode-card p { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+
+/* ---------- 游戏简介 / 教程 ---------- */
+.tutorial-wrap { width: min(680px, 94vw); display: flex; flex-direction: column; gap: 16px; }
+.tut-section { background: var(--panel); border: 1px solid var(--panel-bd); border-radius: 10px; padding: 14px 18px; }
+.tut-section h3 { font-size: 16px; color: var(--cyan-soft); margin-bottom: 10px; letter-spacing: 1px; }
+.tut-section p { font-size: 13px; color: var(--text); line-height: 1.7; }
+.tut-section p .tut-note { color: var(--text-dim); font-size: 12px; }
+.tut-keys { display: flex; flex-wrap: wrap; gap: 14px; }
+.tut-key-group { display: flex; align-items: center; gap: 6px; }
+.tut-label { font-size: 12px; color: var(--text-dim); min-width: 52px; letter-spacing: 1px; }
+.tut-col { font-size: 12px; color: var(--cyan-soft); min-width: 36px; text-align: center; }
+kbd {
+  display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-family: monospace;
+  background: rgba(58,209,255,.12); border: 1px solid var(--panel-bd); color: var(--cyan-soft);
+  box-shadow: 0 2px 4px rgba(0,0,0,.3); min-width: 24px; text-align: center;
+}
+
+/* ---------- 勋章时间轴 ---------- */
+.gallery-scroll { width: min(700px, 94vw); max-height: 72vh; overflow-y: auto; padding: 4px; }
+.gallery-scroll::-webkit-scrollbar { width: 6px; }
+.gallery-scroll::-webkit-scrollbar-thumb { background: var(--panel-bd); border-radius: 3px; }
+
+.timeline { position: relative; padding-left: 32px; }
+.timeline-line { position: absolute; left: 11px; top: 8px; bottom: 8px; width: 2px;
+  background: linear-gradient(180deg, var(--cyan), var(--purple), var(--magenta)); box-shadow: 0 0 8px var(--cyan); }
+.timeline-empty { color: var(--text-dim); font-size: 14px; padding: 20px 0; text-align: center; }
+.timeline-node { position: relative; margin-bottom: 16px; }
+.timeline-dot { position: absolute; left: -27px; top: 8px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--gold); border: 2px solid var(--bg); box-shadow: 0 0 10px var(--gold); z-index: 1; }
+.timeline-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--gold); box-shadow: 0 0 16px rgba(255,210,74,.15);
+  transition: transform .2s; }
+.timeline-card:hover { transform: translateX(6px); }
+
+.ach-locked-section { margin-top: 24px; }
+.locked-title { font-size: 16px; color: var(--text-dim); letter-spacing: 3px; margin-bottom: 12px; text-align: center; }
+.ach-locked-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.ach-locked-grid .ach-card.locked { opacity: .45; }
+
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="ui-root"></div>
+<script>
+
+/* ===== utils.js ===== */
+/* =====================================================================
+ * utils.js — 工具函数：数学运算、随机数、AABB碰撞、向量、对象池
+ * 全部挂载到全局命名空间 TG，供其它模块复用
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  // ----- 数学工具 -----
+  const TAU = Math.PI * 2;
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const randInt = (a, b) => Math.floor(rand(a, b + 1));
+  const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+  const dist2 = (ax, ay, bx, by) => {
+    const dx = ax - bx, dy = ay - by;
+    return dx * dx + dy * dy;
+  };
+  const dist = (ax, ay, bx, by) => Math.sqrt(dist2(ax, ay, bx, by));
+  // 角度差归一到 -PI..PI
+  const angleDiff = (a, b) => {
+    let d = (a - b) % TAU;
+    if (d > Math.PI) d -= TAU;
+    if (d < -Math.PI) d += TAU;
+    return d;
+  };
+  // 朝目标角度平滑转向
+  const turnToward = (cur, target, maxStep) => {
+    const d = angleDiff(target, cur);
+    if (Math.abs(d) <= maxStep) return target;
+    return cur + Math.sign(d) * maxStep;
+  };
+
+  // ----- AABB 碰撞 -----
+  // 两矩形 {x,y,w,h}（左上角+宽高）
+  const aabb = (a, b) =>
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+  // 圆与矩形碰撞（用于子弹圆形 vs 实体矩形）
+  const circleRect = (cx, cy, cr, r) => {
+    const nx = clamp(cx, r.x, r.x + r.w);
+    const ny = clamp(cy, r.y, r.y + r.h);
+    const dx = cx - nx, dy = cy - ny;
+    return dx * dx + dy * dy <= cr * cr;
+  };
+
+  // ----- 对象池 -----
+  // 预分配 + 复用，避免高频 GC 抖动（子弹/粒子/敌人）
+  class Pool {
+    constructor(factory, reset, pre = 0) {
+      this.factory = factory;
+      this.reset = reset;
+      this.free = [];
+      this.active = [];
+      for (let i = 0; i < pre; i++) this.free.push(factory());
+    }
+    acquire() {
+      const o = this.free.pop() || this.factory();
+      this.active.push(o);
+      return o;
+    }
+    release(o) {
+      const i = this.active.indexOf(o);
+      if (i >= 0) {
+        this.active.splice(i, 1);
+        if (this.reset) this.reset(o);
+        this.free.push(o);
+      }
+    }
+    // 每帧回收标记为 dead 的对象
+    sweep(getDead) {
+      for (let i = this.active.length - 1; i >= 0; i--) {
+        const o = this.active[i];
+        if (getDead(o)) this.release(o);
+      }
+    }
+    forEach(fn) {
+      for (let i = 0; i < this.active.length; i++) fn(this.active[i], i);
+    }
+    clear() {
+      while (this.active.length) this.release(this.active[0]);
+    }
+  }
+
+  // ----- localStorage 封装（容错） -----
+  const store = {
+    get(key, def) {
+      try {
+        const v = localStorage.getItem(key);
+        return v == null ? def : JSON.parse(v);
+      } catch (e) { return def; }
+    },
+    set(key, val) {
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+    },
+  };
+
+  // ----- 简易事件计时器：到时回调一次 -----
+  class Timer {
+    constructor() { this.t = 0; this.cb = null; this.active = false; }
+    set(sec, cb) { this.t = sec; this.cb = cb; this.active = true; }
+    update(dt) {
+      if (!this.active) return;
+      this.t -= dt;
+      if (this.t <= 0) { this.active = false; const c = this.cb; this.cb = null; if (c) c(); }
+    }
+    clear() { this.active = false; this.cb = null; }
+  }
+
+  // 导出
+  Object.assign(TG, {
+    TAU, clamp, lerp, rand, randInt, pick, dist, dist2, angleDiff, turnToward,
+    aabb, circleRect, Pool, store, Timer,
+  });
+})(window.TG = window.TG || {});
+
+
+/* ===== audio.js ===== */
+/* =====================================================================
+ * audio.js — 程序化音频引擎（Web Audio API）
+ *   - 多阶段 BGM：主菜单 / 轻松战斗 / 紧张战斗 / Boss战 / 胜利 / 失败
+ *   - 音效 SFX：射击 / 命中 / 爆炸 / 拾取 / 受击 / 清屏 / 升级 / 点击 等
+ *   - 全部用振荡器+包络+滤波器合成，零外部音频文件
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  class AudioEngine {
+    constructor() {
+      this.ctx = null;
+      this.master = null;
+      this.musicGain = null;
+      this.sfxGain = null;
+      this.enabled = true;
+      this.musicOn = true;
+      this.sfxOn = true;
+      this.curTrack = null;     // 当前曲目 id
+      this.seqTimer = null;     // setTimeout 句柄
+      this.step = 0;            // 序列步进
+      this.bpm = 120;
+      this.layer2 = false;      // 是否叠加紧张层
+      this.volume = 0.7;
+    }
+
+    // 用户首次交互后才可创建 AudioContext（浏览器策略）
+    init() {
+      if (this.ctx) return;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AC();
+        this.master = this.ctx.createGain();
+        this.master.gain.value = this.volume;
+        this.master.connect(this.ctx.destination);
+        this.musicGain = this.ctx.createGain();
+        this.musicGain.gain.value = 0.42;
+        this.musicGain.connect(this.master);
+        this.sfxGain = this.ctx.createGain();
+        this.sfxGain.gain.value = 0.55;
+        this.sfxGain.connect(this.master);
+      } catch (e) { this.enabled = false; }
+    }
+
+    resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+
+    setVolume(v) {
+      this.volume = TG.clamp(v, 0, 1);
+      if (this.master) this.master.gain.value = this.volume;
+    }
+
+    // ---- 单音合成 ----
+    // type: 振荡器类型；freq；dur；gain；attack/decay；可选 glide 目标频率
+    tone({ freq = 440, type = 'sine', dur = 0.2, gain = 0.2, attack = 0.005,
+           decay = null, glide = null, dest = null, when = 0, detune = 0 }) {
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime + when;
+      const osc = this.ctx.createOscillator();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      if (glide != null) osc.frequency.exponentialRampToValueAtTime(Math.max(1, glide), t + dur);
+      osc.detune.value = detune;
+      const g = this.ctx.createGain();
+      const d = decay != null ? decay : dur;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + d);
+      osc.connect(g);
+      g.connect(dest || this.sfxGain);
+      osc.start(t);
+      osc.stop(t + attack + d + 0.02);
+    }
+
+    // 噪声爆（爆炸/受击）
+    noise({ dur = 0.3, gain = 0.3, type = 'highpass', freq = 800, q = 1, when = 0 }) {
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime + when;
+      const len = Math.floor(this.ctx.sampleRate * dur);
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const filt = this.ctx.createBiquadFilter();
+      filt.type = type; filt.frequency.value = freq; filt.Q.value = q;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(gain, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(filt); filt.connect(g); g.connect(this.sfxGain);
+      src.start(t);
+    }
+
+    // ============== SFX 库 ==============
+    sfxShoot() { this.tone({ freq: 720, type: 'square', dur: 0.08, gain: 0.12, glide: 240 }); this.noise({ dur: 0.05, gain: 0.05, freq: 1800 }); }
+    sfxEnemyShoot() { this.tone({ freq: 300, type: 'sawtooth', dur: 0.1, gain: 0.06, glide: 160 }); }
+    sfxHit() { this.tone({ freq: 420, type: 'triangle', dur: 0.07, gain: 0.12, glide: 620 }); this.noise({ dur: 0.06, gain: 0.08, freq: 2400 }); }
+    sfxExplosion() { this.noise({ dur: 0.45, gain: 0.32, type: 'lowpass', freq: 900, q: 0.6 }); this.tone({ freq: 120, type: 'sine', dur: 0.35, gain: 0.18, glide: 40 }); }
+    sfxBigExplosion() { this.noise({ dur: 0.9, gain: 0.42, type: 'lowpass', freq: 700, q: 0.5 }); this.tone({ freq: 90, type: 'sine', dur: 0.8, gain: 0.28, glide: 30 }); for (let i = 0; i < 3; i++) this.tone({ freq: 200 + i * 120, type: 'square', dur: 0.3, gain: 0.1, glide: 60, when: i * 0.08 }); }
+    sfxPickup() { this.tone({ freq: 660, dur: 0.08, gain: 0.14, type: 'triangle' }); this.tone({ freq: 990, dur: 0.1, gain: 0.12, type: 'triangle', when: 0.08 }); }
+    sfxHurt() { this.noise({ dur: 0.2, gain: 0.25, type: 'bandpass', freq: 500, q: 1.5 }); this.tone({ freq: 220, type: 'sawtooth', dur: 0.18, gain: 0.14, glide: 90 }); }
+    sfxShield() { this.tone({ freq: 200, type: 'sine', dur: 0.4, gain: 0.16, glide: 900 }); this.tone({ freq: 600, type: 'triangle', dur: 0.4, gain: 0.1, glide: 1400 }); }
+    sfxClear() { for (let i = 0; i < 6; i++) this.tone({ freq: 300 + i * 180, type: 'sawtooth', dur: 0.18, gain: 0.1, glide: 1200, when: i * 0.03 }); this.noise({ dur: 0.5, gain: 0.2, type: 'highpass', freq: 1000 }); }
+    sfxUpgrade() { const n = [523, 659, 784, 1047]; n.forEach((f, i) => this.tone({ freq: f, type: 'triangle', dur: 0.16, gain: 0.12, when: i * 0.07 })); }
+    sfxClick() { this.tone({ freq: 880, type: 'square', dur: 0.04, gain: 0.08 }); }
+    sfxHover() { this.tone({ freq: 1200, type: 'sine', dur: 0.03, gain: 0.04 }); }
+    sfxAchievement() { const n = [784, 988, 1175, 1568]; n.forEach((f, i) => this.tone({ freq: f, type: 'triangle', dur: 0.22, gain: 0.12, when: i * 0.09 })); }
+    sfxBossRoar() { this.tone({ freq: 80, type: 'sawtooth', dur: 1.2, gain: 0.3, glide: 50 }); this.noise({ dur: 1.2, gain: 0.25, type: 'lowpass', freq: 400, q: 0.7 }); this.tone({ freq: 120, type: 'square', dur: 0.8, gain: 0.16, glide: 60, when: 0.1 }); }
+    sfxWarning() { for (let i = 0; i < 4; i++) this.tone({ freq: 880, type: 'square', dur: 0.12, gain: 0.12, when: i * 0.18 }); }
+
+    // ============== BGM 引擎 ==============
+    // 每首曲目定义：根音、调式音阶、bass 线、和弦、旋律模板、bpm、音色
+    static SCALES = {
+      minor: [0, 2, 3, 5, 7, 8, 10],
+      major: [0, 2, 4, 5, 7, 9, 11],
+      phrygian: [0, 1, 3, 5, 7, 8, 10],
+      pentMin: [0, 3, 5, 7, 10],
+    };
+    static TRACKS = {
+      menu:    { root: 55,  scale: 'major',   bpm: 92,  bass: [0, 7, 5, 10], chords: [[0,4,7],[5,9,12],[7,11,14],[10,14,17]], mel: [0,4,7,9,7,4,2,0], wave: 'triangle', tense: false },
+      calm:    { root: 49,  scale: 'pentMin',  bpm: 104, bass: [0, 7, 3, 10], chords: [[0,3,7],[7,10,14],[3,7,10],[10,14,17]], mel: [0,3,5,7,10,7,5,3], wave: 'sawtooth', tense: false },
+      tense:   { root: 41,  scale: 'minor',    bpm: 138, bass: [0, 7, 3, 8],  chords: [[0,3,7],[8,11,15],[3,7,10],[10,13,17]], mel: [0,3,5,7,3,0,10,7], wave: 'square', tense: true },
+      boss:    { root: 33,  scale: 'phrygian', bpm: 150, bass: [0, 1, 0, 1], chords: [[0,3,7],[1,4,8],[0,3,7],[1,4,8]], mel: [0,1,3,1,0,10,8,7], wave: 'sawtooth', tense: true },
+      victory: { root: 60,  scale: 'major',    bpm: 120, bass: [0, 7, 9, 12], chords: [[0,4,7],[7,11,14],[9,12,16],[12,16,19]], mel: [0,4,7,12,11,9,7,4], wave: 'triangle', tense: false },
+      defeat:  { root: 44,  scale: 'minor',    bpm: 70,  bass: [0, 0, 5, 4],   chords: [[0,3,7],[0,3,7],[5,8,12],[4,7,11]], mel: [0,3,7,3,0,10,8,7], wave: 'sine', tense: false },
+    };
+
+    playMusic(id, crossfade = 0.8) {
+      if (!this.ctx || !this.enabled || !this.musicOn) return;
+      if (this.curTrack === id) return;        // 同曲目不重复启动
+      this._stopScheduler();
+      if (this.musicGain && this.ctx) this.musicGain.gain.value = 0.42;
+      this.curTrack = id;
+      this.layer2 = false;
+      const tr = AudioEngine.TRACKS[id];
+      if (!tr) return;
+      this.bpm = tr.bpm;
+      this.step = 0;
+      this._schedLoop(id, tr);
+    }
+
+    // 切换是否叠加紧张层（同一曲目叠加高音节奏层）
+    setTenseLayer(on) {
+      if (this.layer2 === on) return;
+      this.layer2 = on;
+    }
+
+    _stopScheduler() {
+      if (this.seqTimer) { clearTimeout(this.seqTimer); this.seqTimer = null; }
+    }
+
+    stopMusic(fade = 0.6) {
+      this._stopScheduler();
+      this.curTrack = null;
+      if (this.musicGain && this.ctx) {
+        const t = this.ctx.currentTime;
+        this.musicGain.gain.cancelScheduledValues(t);
+        this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, t);
+        this.musicGain.gain.linearRampToValueAtTime(0.0001, t + fade);
+      }
+    }
+
+    // 一个 16 步循环：bass + 和弦垫 + 旋律；trackId 用于校验是否仍在播放该曲
+    _schedLoop(trackId, tr) {
+      const beat = 60 / this.bpm / 2;          // 八分音符时长
+      const scale = AudioEngine.SCALES[tr.scale];
+      const noteFreq = (semi) => 440 * Math.pow(2, (tr.root + semi - 69) / 12);
+
+      const tick = () => {
+        if (this.curTrack !== trackId) return;  // 曲目已切换/停止则退出循环
+        const s = this.step % 16;
+        // 低音
+        if (s % 4 === 0) {
+          const bi = (s / 4) | 0;
+          this.tone({ freq: noteFreq(tr.bass[bi % tr.bass.length]), type: 'sine', dur: beat * 3, gain: 0.16, attack: 0.01, dest: this.musicGain });
+        }
+        // 和弦垫（每 8 步换和弦）
+        if (s % 8 === 0) {
+          const ci = (s / 8) | 0;
+          const ch = tr.chords[ci % tr.chords.length];
+          ch.forEach((semi) => this.tone({ freq: noteFreq(semi + 12), type: 'sine', dur: beat * 7, gain: 0.05, attack: 0.06, dest: this.musicGain }));
+        }
+        // 旋律（偶数步）
+        if (s % 2 === 0) {
+          const mi = (s / 2) | 0;
+          const semi = tr.mel[mi % tr.mel.length];
+          const octave = tr.tense ? 12 : 0;
+          this.tone({ freq: noteFreq(scale[semi % scale.length] + 24 + octave), type: tr.wave, dur: beat * 1.6, gain: 0.1, dest: this.musicGain });
+          if (this.layer2) {
+            // 紧张节奏层：短促高音脉冲
+            this.tone({ freq: noteFreq(scale[semi % scale.length] + 36), type: 'square', dur: 0.06, gain: 0.06, dest: this.musicGain });
+          }
+        }
+        // 紧张层打击（hi-hat 噪声）
+        if (this.layer2 && s % 2 === 1) {
+          this.noise({ dur: 0.03, gain: 0.04, type: 'highpass', freq: 6000 });
+        }
+        this.step++;
+        this.seqTimer = setTimeout(tick, beat * 1000);
+      };
+      tick();
+    }
+  }
+
+  TG.AudioEngine = AudioEngine;
+  TG.audio = new AudioEngine();
+})(window.TG = window.TG || {});
+
+
+/* ===== particle.js ===== */
+/* =====================================================================
+ * particle.js — 粒子系统
+ *   类型：爆炸碎片 / 子弹拖尾 / 命中闪光 / 拾取光环 / 护盾环 / 引擎尾焰
+ *   单例 ParticleSystem 统一管理 update+render，复用对象池
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  class Particle {
+    constructor() { this.alive = false; }
+    spawn(x, y, vx, vy, life, color, size, type, extra) {
+      this.alive = true;
+      this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+      this.life = life; this.max = life;
+      this.color = color; this.size = size; this.type = type;
+      this.extra = extra || {};
+      this.rot = Math.random() * TG.TAU;
+      this.vr = TG.rand(-6, 6);
+    }
+    update(dt) {
+      if (!this.alive) return;
+      this.life -= dt;
+      if (this.life <= 0) { this.alive = false; return; }
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      this.vx *= 0.96; this.vy *= 0.96;
+      if (this.extra.gravity) this.vy += this.extra.gravity * dt;
+      this.rot += this.vr * dt;
+    }
+    render(ctx) {
+      if (!this.alive) return;
+      const t = this.life / this.max; // 1→0
+      const a = TG.clamp(t, 0, 1);
+      ctx.globalAlpha = a;
+      if (this.type === 'spark') {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * a, 0, TG.TAU);
+        ctx.fill();
+      } else if (this.type === 'ring') {
+        const r = this.size * (1 - t) * (this.extra.span || 1) + this.size * 0.3;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2 + 2 * a;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r, 0, TG.TAU);
+        ctx.stroke();
+      } else if (this.type === 'debris') {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rot);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.6);
+        ctx.restore();
+      } else if (this.type === 'flash') {
+        const r = this.size * (1 - t * 0.3);
+        const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, r);
+        g.addColorStop(0, this.color);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r, 0, TG.TAU);
+        ctx.fill();
+      } else if (this.type === 'streak') {
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = this.size * a;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x - this.vx * 0.03, this.y - this.vy * 0.03);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  class ParticleSystem {
+    constructor() {
+      this.pool = new TG.Pool(() => new Particle(), (p) => { p.alive = false; }, 200);
+    }
+    clear() { this.pool.clear(); }
+    count() { return this.pool.active.length; }
+
+    _emit(x, y, vx, vy, life, color, size, type, extra) {
+      const p = this.pool.acquire();
+      p.spawn(x, y, vx, vy, life, color, size, type, extra);
+      return p;
+    }
+
+    // 爆炸：碎片 + 火花 + 闪光环
+    explode(x, y, color = '#ff7a1a', power = 1) {
+      const n = Math.floor(10 + 14 * power);
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * TG.TAU;
+        const sp = TG.rand(60, 240) * power;
+        this._emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp, TG.rand(0.3, 0.7),
+          TG.pick([color, '#ffd24a', '#ff5a3a']), TG.rand(2, 5), 'spark');
+      }
+      for (let i = 0; i < Math.floor(6 * power); i++) {
+        const a = Math.random() * TG.TAU;
+        const sp = TG.rand(40, 160) * power;
+        this._emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp, TG.rand(0.4, 0.9),
+          TG.pick([color, '#8a4a2a']), TG.rand(3, 7), 'debris', { gravity: 120 });
+      }
+      this._emit(x, y, 0, 0, 0.35, color, 10 * power, 'flash');
+      this._emit(x, y, 0, 0, 0.5, color, 26 * power, 'ring', { span: 3 * power });
+    }
+
+    // 击中：小型火花
+    hit(x, y, ang, color = '#7fffd4') {
+      for (let i = 0; i < 6; i++) {
+        const a = ang + TG.rand(-1, 1);
+        const sp = TG.rand(80, 200);
+        this._emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp, TG.rand(0.15, 0.35),
+          color, TG.rand(1.5, 3), 'spark');
+      }
+      this._emit(x, y, 0, 0, 0.18, color, 8, 'flash');
+    }
+
+    // 枪口闪光
+    muzzle(x, y, ang, color = '#9bf6ff') {
+      for (let i = 0; i < 4; i++) {
+        const a = ang + TG.rand(-0.4, 0.4);
+        const sp = TG.rand(120, 280);
+        this._emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp, TG.rand(0.1, 0.22),
+          color, TG.rand(1.5, 3), 'spark');
+      }
+      this._emit(x, y, 0, 0, 0.12, color, 10, 'flash');
+    }
+
+    // 子弹拖尾（轻量）
+    trail(x, y, vx, vy, color, size = 2) {
+      this._emit(x, y, vx * 0.2, vy * 0.2, 0.22, color, size, 'streak');
+    }
+
+    // 拾取光环
+    pickup(x, y, color) {
+      this._emit(x, y, 0, 0, 0.45, color, 30, 'ring', { span: 2 });
+      for (let i = 0; i < 8; i++) {
+        const a = Math.random() * TG.TAU;
+        const sp = TG.rand(40, 120);
+        this._emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp, 0.4, color, 2.5, 'spark');
+      }
+    }
+
+    // 护盾环（持续型，由玩家每帧调用）
+    shieldRing(x, y, r, color) {
+      this._emit(x, y, 0, 0, 0.4, color, r, 'ring', { span: 0.6 });
+    }
+
+    // 引擎尾焰
+    thrust(x, y, ang, color) {
+      const a = ang + Math.PI + TG.rand(-0.3, 0.3);
+      const sp = TG.rand(40, 110);
+      this._emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp, TG.rand(0.12, 0.26),
+        color, TG.rand(1.5, 3), 'spark');
+    }
+
+    // 全屏清屏冲击波
+    shockwave(x, y, color) {
+      for (let i = 0; i < 3; i++) {
+        this._emit(x, y, 0, 0, 0.5 + i * 0.15, color, 40 + i * 30, 'ring', { span: 6 });
+      }
+      this._emit(x, y, 0, 0, 0.4, color, 60, 'flash');
+      for (let i = 0; i < 24; i++) {
+        const a = Math.random() * TG.TAU;
+        const sp = TG.rand(200, 500);
+        this._emit(x, y, Math.cos(a) * sp, Math.sin(a) * sp, TG.rand(0.4, 0.8),
+          TG.pick([color, '#ffffff', '#b06bff']), TG.rand(2, 5), 'spark');
+      }
+    }
+
+    update(dt) { this.pool.forEach((p) => p.update(dt)); this.pool.sweep((p) => !p.alive); }
+    render(ctx) { this.pool.forEach((p) => p.render(ctx)); }
+  }
+
+  TG.Particle = Particle;
+  TG.particles = new ParticleSystem();
+
+  /* =====================================================================
+   * 伤害飘字系统 — 命中时弹出伤害数字，向上飘起+淡出
+   * 轻量管理，复用对象池
+   * ===================================================================== */
+  class FloatText {
+    constructor() { this.alive = false; }
+    spawn(x, y, text, color) {
+      this.alive = true;
+      this.x = x; this.y = y;
+      this.text = String(text);
+      this.color = color || '#ffffff';
+      this.life = 0.8; this.max = 0.8;     // 存活时间（秒）
+      this.vy = -60;                        // 向上飘起速度
+      this.vx = TG.rand(-15, 15);           // 轻微水平偏移
+    }
+    update(dt) {
+      if (!this.alive) return;
+      this.life -= dt;
+      if (this.life <= 0) { this.alive = false; return; }
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      this.vy *= 0.94;                      // 减速
+    }
+    render(ctx) {
+      if (!this.alive) return;
+      const t = this.life / this.max;       // 1→0
+      const a = TG.clamp(t, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.font = 'bold 14px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 6;
+      ctx.fillText(this.text, this.x, this.y);
+      ctx.restore();
+    }
+  }
+
+  class FloatTextSystem {
+    constructor() {
+      this.pool = new TG.Pool(() => new FloatText(), (f) => { f.alive = false; }, 60);
+    }
+    clear() { this.pool.clear(); }
+    // 生成伤害飘字
+    spawn(x, y, text, color) {
+      const f = this.pool.acquire();
+      f.spawn(x, y, text, color);
+      return f;
+    }
+    update(dt) { this.pool.forEach((f) => f.update(dt)); this.pool.sweep((f) => !f.alive); }
+    render(ctx) { this.pool.forEach((f) => f.render(ctx)); }
+  }
+
+  TG.FloatText = FloatText;
+  TG.floatTexts = new FloatTextSystem();
+})(window.TG = window.TG || {});
+
+
+/* ===== bullet.js ===== */
+/* =====================================================================
+ * bullet.js — 子弹系统（弹道 / 阵营 / 对象池）
+ *   - team: 'player' | 'enemy'
+ *   - 高速子弹用分步移动避免穿透
+ *   - 拖尾由粒子系统生成
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  class Bullet {
+    constructor() { this.alive = false; }
+    spawn(x, y, vx, vy, team, dmg, opts) {
+      this.alive = true;
+      this.x = x; this.y = y;
+      this.px = x; this.py = y;          // 上一帧位置（用于拖尾/穿透）
+      this.vx = vx; this.vy = vy;
+      this.team = team;                  // 阵营
+      this.dmg = dmg;
+      this.r = (opts && opts.r) || 4;    // 半径（用于碰撞）
+      this.life = (opts && opts.life) || 2.5;
+      this.color = (opts && opts.color) || (team === 'player' ? '#9bf6ff' : '#ff6bd6');
+      this.pierce = (opts && opts.pierce) || 0;   // 穿透剩余次数（0=命中即销毁）
+      this.homing = (opts && opts.homing) || 0;   // 追踪强度
+      this.target = (opts && opts.target) || null;
+      this.shape = (opts && opts.shape) || 'round';
+      this.spin = 0;
+      this.trailT = 0;
+    }
+    update(dt, game) {
+      if (!this.alive) return;
+      this.px = this.x; this.py = this.y;
+      // 追踪
+      if (this.homing && this.target && this.target.alive) {
+        const want = Math.atan2(this.target.cy - this.y, this.target.cx - this.x);
+        const cur = Math.atan2(this.vy, this.vx);
+        const na = TG.turnToward(cur, want, this.homing * dt);
+        const sp = Math.hypot(this.vx, this.vy);
+        this.vx = Math.cos(na) * sp; this.vy = Math.sin(na) * sp;
+      }
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      this.spin += dt * 8;
+      this.life -= dt;
+      // 出界销毁
+      const W = game.W, H = game.H, m = 60;
+      if (this.x < -m || this.x > W + m || this.y < -m || this.y > H + m || this.life <= 0) {
+        this.alive = false; return;
+      }
+      // 拖尾（节流：每 0.02s）
+      this.trailT -= dt;
+      if (this.trailT <= 0) {
+        TG.particles.trail(this.x, this.y, this.vx, this.vy, this.color, this.r * 0.7);
+        this.trailT = 0.02;
+      }
+    }
+    render(ctx) {
+      if (!this.alive) return;
+      const a = Math.atan2(this.vy, this.vx);
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(a);
+      const c = this.color;
+      // 外发光
+      ctx.shadowColor = c; ctx.shadowBlur = 12;
+      if (this.shape === 'round') {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(0, 0, this.r, 0, TG.TAU); ctx.fill();
+        ctx.fillStyle = c;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath(); ctx.arc(0, 0, this.r * 1.7, 0, TG.TAU); ctx.fill();
+        ctx.globalAlpha = 1;
+      } else { // 'bolt' 闪电长条
+        ctx.fillStyle = c;
+        ctx.fillRect(-this.r * 2.2, -this.r * 0.5, this.r * 4.4, this.r);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-this.r * 1.6, -this.r * 0.25, this.r * 3.2, this.r * 0.5);
+      }
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+    // 碰撞盒（圆）
+    hitCircle() { return { x: this.x, y: this.y, r: this.r }; }
+  }
+
+  class BulletSystem {
+    constructor() {
+      this.pool = new TG.Pool(() => new Bullet(), (b) => { b.alive = false; }, 120);
+    }
+    clear() { this.pool.clear(); }
+    count() { return this.pool.active.length; }
+
+    fire(x, y, ang, speed, team, dmg, opts) {
+      const b = this.pool.acquire();
+      b.spawn(x, y, Math.cos(ang) * speed, Math.sin(ang) * speed, team, dmg, opts);
+      return b;
+    }
+
+    update(dt, game) {
+      this.pool.forEach((b) => b.update(dt, game));
+      this.pool.sweep((b) => !b.alive);
+    }
+    render(ctx) { this.pool.forEach((b) => b.render(ctx)); }
+    forEach(fn) { this.pool.forEach(fn); }
+  }
+
+  TG.Bullet = Bullet;
+  TG.bullets = new BulletSystem();
+})(window.TG = window.TG || {});
+
+
+/* ===== powerup.js ===== */
+/* =====================================================================
+ * powerup.js — 道具系统
+ *   - 敌人被击杀按概率掉落
+ *   - 低速下落，玩家碰撞拾取
+ *   - 类型：火力/速度/护盾/生命/分数加倍
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  const TYPES = ['fire', 'speed', 'shield', 'heal', 'score'];
+  const COLORS = { fire: '#ffb13a', speed: '#7cff8a', shield: '#3ad1ff', heal: '#ff5a8a', score: '#ffd24a' };
+  const ICONS = { fire: 'F', speed: 'S', shield: 'D', heal: '+', score: 'x2' };
+
+  class PowerUp {
+    constructor() { this.alive = false; }
+    spawn(x, y) {
+      this.alive = true;
+      this.x = x; this.y = y; this.vx = TG.rand(-30, 30); this.vy = 60;
+      this.r = 11;
+      this.type = TG.pick(TYPES);
+      this.color = COLORS[this.type];
+      this.t = 0;
+    }
+    update(dt, game) {
+      if (!this.alive) return;
+      this.t += dt;
+      this.x += this.vx * dt; this.y += this.vy * dt;
+      this.vx *= 0.98;
+      if (this.y > game.H + 30) this.alive = false;
+    }
+    render(ctx) {
+      if (!this.alive) return;
+      const pulse = 1 + Math.sin(this.t * 5) * 0.12;
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.scale(pulse, pulse);
+      ctx.shadowColor = this.color; ctx.shadowBlur = 16;
+      ctx.fillStyle = this.color;
+      ctx.beginPath(); ctx.arc(0, 0, this.r, 0, TG.TAU); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#0a0f1a';
+      ctx.beginPath(); ctx.arc(0, 0, this.r - 3, 0, TG.TAU); ctx.fill();
+      ctx.fillStyle = this.color;
+      ctx.font = 'bold 10px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(ICONS[this.type], 0, 1);
+      ctx.restore();
+    }
+    hitCircle() { return { x: this.x, y: this.y, r: this.r + 4 }; }
+  }
+
+  class PowerUpSystem {
+    constructor() { this.pool = new TG.Pool(() => new PowerUp(), (p) => { p.alive = false; }, 20); }
+    clear() { this.pool.clear(); }
+    spawn(x, y) { const p = this.pool.acquire(); p.spawn(x, y); return p; }
+    update(dt, game) { this.pool.forEach((p) => p.update(dt, game)); this.pool.sweep((p) => !p.alive); }
+    render(ctx) { this.pool.forEach((p) => p.render(ctx)); }
+    forEach(fn) { this.pool.forEach(fn); }
+  }
+
+  TG.PowerUp = PowerUp;
+  TG.powerups = new PowerUpSystem();
+  TG.POWERUP_COLORS = COLORS;
+})(window.TG = window.TG || {});
+
+
+/* ===== enemy.js ===== */
+/* =====================================================================
+ * enemy.js — 敌人系统
+ *   - 普通：多种移动模式（直线/正弦/盘旋）
+ *   - 精英：追踪玩家、扇形弹幕
+ *   - 拟人化嘲讽：随机弹出文字气泡，带出现/消失动画
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  // 嘲讽台词池（不同性格）
+  const TAUNTS = {
+    cocky: ['就这？', '你打不到我~', '哈哈哈', '太慢啦', '挠痒痒呢？', '菜'],
+    aggressive: ['受死吧！', '毁灭你！', '碾碎！', '别想逃！', '火火火！'],
+    scared: ['别追我！', '救命！', '我错了！', '快跑！', '啊啊啊'],
+    boss: ['蝼蚁', '不堪一击', '臣服吧', '星河将熄', '汝等皆是尘埃', '徒劳'],
+  };
+
+  const TYPES = {
+    grunt:  { hp: 18, speed: 70, dmg: 6, color: '#ff5a8a', score: 60, fireCd: 2.2, bSpeed: 200, r: 16, taunt: 'cocky', defense: 2 },
+    diver:  { hp: 14, speed: 120, dmg: 5, color: '#ff8a3a', score: 80, fireCd: 1.8, bSpeed: 240, r: 14, taunt: 'cocky', defense: 1 },
+    elite:  { hp: 40, speed: 95, dmg: 8, color: '#b06bff', score: 160, fireCd: 1.6, bSpeed: 230, r: 19, taunt: 'aggressive', homing: 1.2, defense: 5 },
+    sniper: { hp: 22, speed: 60, dmg: 10, color: '#3affc0', score: 120, fireCd: 2.6, bSpeed: 320, r: 16, taunt: 'scared', aimed: true, defense: 3 },
+  };
+
+  class Enemy {
+    constructor() { this.alive = false; }
+    spawn(type, x, y, tension, game, level) {
+      const def = TYPES[type] || TYPES.grunt;
+      const lvl = level || 1;
+      // 第2关敌人属性梯度：HP +20%、速度 +12%（克制幅度，不翻倍）
+      const lvlHp = 1 + 0.20 * (lvl - 1);
+      const lvlSpd = 1 + 0.12 * (lvl - 1);
+      this.alive = true;
+      this.type = type; this.def = def;
+      this.cx = x; this.cy = y;
+      this.r = def.r;
+      this.ang = Math.PI / 2;        // 朝下
+      this.maxHp = def.hp * (1 + tension * 0.5) * lvlHp;
+      this.hp = this.maxHp;
+      this.speed = def.speed * (1 + tension * 0.35) * lvlSpd;
+      this.dmg = def.dmg;
+      this.color = def.color;
+      this.fireCd = def.fireCd / (1 + tension * 0.4);
+      this.bSpeed = def.bSpeed;
+      this.fireT = TG.rand(0.5, def.fireCd);
+      this.score = def.score;
+      this.tauntPool = TAUNTS[def.taunt];
+      this.homing = def.homing || 0;
+      this.aimed = def.aimed || false;
+      this.defense = def.defense || 0;             // 防御值（减伤）
+      this.game = game;
+      this.t = 0;
+      this.flashT = 0;
+      this.bubble = null; this.bubbleT = 0;
+      // 按敌人类型分配移动模式
+      if (type === 'diver') {
+        this.pattern = 'dive';           // 冲锋兵：快速俯冲+编织走位
+      } else if (type === 'elite') {
+        this.pattern = 'kite';           // 精英：保持距离游走（kiting）
+      } else if (type === 'sniper') {
+        this.pattern = 'snipe';          // 狙击手：拉开距离射击
+      } else {
+        // 普通兵：多样化随机模式
+        this.pattern = TG.pick(['straight', 'sine', 'zigzag', 'arc', 'pause-charge']);
+      }
+      this.baseX = x; this.phase = Math.random() * TG.TAU;
+      this.tauntNext = TG.rand(3, 7);
+      this.entryT = 0.6;             // 入场缩放
+      this.pauseT = 0;               // 停顿-冲锋模式的计时器
+      this.chargeT = 0;               // 冲锋计时器
+      this.kiteDist = TG.rand(150, 240); // 精英/狙击手偏好距离
+    }
+
+    taunt(force) {
+      if (this.bubbleT > 0 && !force) return;
+      this.bubble = TG.pick(this.tauntPool);
+      this.bubbleT = 2.2;
+    }
+
+    update(dt, game) {
+      if (!this.alive) return;
+      this.t += dt;
+      this.entryT = Math.max(0, this.entryT - dt);
+      this.flashT = Math.max(0, this.flashT - dt);
+      this.bubbleT = Math.max(0, this.bubbleT - dt);
+      this.tauntNext -= dt;
+      if (this.tauntNext <= 0) {
+        if (Math.random() < 0.5) this.taunt();
+        this.tauntNext = TG.rand(5, 11);
+      }
+
+      const p = game.player;
+      const sp = this.speed * dt;
+
+      // ====== 按类型/模式执行移动 ======
+      switch (this.pattern) {
+        case 'dive':
+          // 冲锋兵：快速俯冲 + 轻微编织走位（不再笔直送死）
+          this.cy += sp * 1.3;
+          this.cx += Math.sin(this.t * 5 + this.phase) * sp * 0.6;
+          this.ang = Math.PI / 2 + Math.sin(this.t * 5) * 0.35;
+          break;
+
+        case 'kite':
+          // 精英：保持距离游走（kiting），太近拉开、太远靠近、适中绕圈
+          if (p) {
+            const dx = p.cx - this.cx, dy = p.cy - this.cy;
+            const d = Math.hypot(dx, dy) || 1;
+            if (d < this.kiteDist) {
+              // 太近 → 后撤
+              this.cx -= (dx / d) * sp;
+              this.cy -= (dy / d) * sp * 0.8;
+            } else if (d > this.kiteDist + 80) {
+              // 太远 → 缓慢逼近
+              this.cx += (dx / d) * sp * 0.6;
+              this.cy += (dy / d) * sp * 0.6;
+            } else {
+              // 适中 → 侧向绕圈
+              const pa = Math.atan2(dy, dx) + Math.PI / 2;
+              this.cx += Math.cos(pa) * sp * 0.7;
+              this.cy += Math.sin(pa) * sp * 0.7;
+            }
+            this.ang = Math.atan2(dy, dx);
+          } else {
+            this.cy += sp;
+          }
+          break;
+
+        case 'snipe':
+          // 狙击手：拉开距离射击，玩家靠近时快速后撤
+          if (p) {
+            const dx = p.cx - this.cx, dy = p.cy - this.cy;
+            const d = Math.hypot(dx, dy) || 1;
+            if (d < this.kiteDist * 0.7) {
+              // 玩家逼近 → 快速后撤
+              this.cx -= (dx / d) * sp * 1.3;
+              this.cy -= (dy / d) * sp * 1.3;
+            } else if (d > this.kiteDist * 1.5) {
+              // 太远 → 缓慢靠拢
+              this.cx += (dx / d) * sp * 0.4;
+              this.cy += (dy / d) * sp * 0.4;
+            }
+            // 偏好在屏幕上半区域
+            if (this.cy > game.H * 0.45) this.cy -= sp * 0.5;
+            this.ang = Math.atan2(dy, dx);
+          } else {
+            this.cy += sp * 0.5;
+          }
+          break;
+
+        case 'zigzag':
+          // 普通兵：之字形推进
+          this.cy += sp * 0.85;
+          this.cx += Math.sin(this.t * 3 + this.phase) * sp * 1.2;
+          this.ang = Math.PI / 2 + Math.sin(this.t * 3) * 0.4;
+          break;
+
+        case 'arc':
+          // 普通兵：弧线包抄（侧向+向下）
+          {
+            const dir = this.phase < Math.PI ? 1 : -1;
+            this.cy += sp * 0.65;
+            this.cx += dir * (sp * 0.55 + Math.cos(this.t * 1.5) * sp * 0.3);
+            this.ang = Math.PI / 2 + dir * 0.5;
+          }
+          break;
+
+        case 'pause-charge':
+          // 普通兵：间歇停顿再冲刺
+          if (this.pauseT > 0) {
+            this.pauseT -= dt;
+            this.cx += Math.sin(this.t * 4) * sp * 0.15; // 停顿时微抖
+          } else if (this.chargeT > 0) {
+            this.chargeT -= dt;
+            this.cy += sp * 2.6;                          // 快速冲刺
+          } else {
+            // 随机切换停顿/冲刺
+            if (Math.random() < 0.015) this.pauseT = TG.rand(0.5, 1.2);
+            else this.chargeT = TG.rand(0.3, 0.6);
+            this.cy += sp * 0.3;                          // 慢速漂流
+          }
+          this.ang = Math.PI / 2;
+          break;
+
+        case 'sine':
+          // 普通兵：正弦波
+          this.cy += sp;
+          this.cx = this.baseX + Math.sin(this.t * 2.5 + this.phase) * 60;
+          this.ang = Math.PI / 2;
+          break;
+
+        case 'orbit':
+          // 普通兵：盘旋
+          this.cx += Math.cos(this.t * 1.4 + this.phase) * sp;
+          this.cy += Math.sin(this.t * 1.4) * 0.4 * sp + sp * 0.5;
+          this.ang = Math.atan2(Math.sin(this.t * 1.4), Math.cos(this.t * 1.4 + this.phase));
+          break;
+
+        default:
+          // 直线推进
+          this.cy += sp;
+          this.ang = Math.PI / 2;
+      }
+
+      // 轻微呼吸抖动（让走位更生动，不影响性能）
+      this.cx += Math.sin(this.t * 3 + this.phase) * 0.4;
+      this.cy += Math.cos(this.t * 2.5 + this.phase) * 0.4;
+
+      // 简单分离：避免完全重叠扎堆
+      this._separate(dt);
+
+      // 边界：左右回弹，越下方消失并扣分提示
+      if (this.cx < this.r) { this.cx = this.r; this.baseX = this.r; }
+      if (this.cx > game.W - this.r) { this.cx = game.W - this.r; this.baseX = game.W - this.r; }
+      if (this.cy > game.H + 40) { this.alive = false; return; }
+
+      // 射击
+      this.fireT -= dt;
+      if (this.fireT <= 0 && p && this.cy < game.H - 30) {
+        this.shoot(game);
+        this.fireT = this.fireCd;
+      }
+    }
+
+    shoot(game) {
+      const p = game.player;
+      let ang = Math.PI / 2;
+      if (this.aimed && p) ang = Math.atan2(p.cy - this.cy, p.cx - this.cx);
+      const ox = this.cx + Math.cos(this.ang) * (this.r + 4);
+      const oy = this.cy + Math.sin(this.ang) * (this.r + 4);
+      const opts = { color: this.color, r: 4, life: 3, homing: this.homing };
+      if (this.type === 'elite') {
+        // 三连扇形
+        for (let i = -1; i <= 1; i++) {
+          TG.bullets.fire(ox, oy, ang + i * 0.22, this.bSpeed, 'enemy', this.dmg, opts);
+        }
+      } else {
+        TG.bullets.fire(ox, oy, ang, this.bSpeed, 'enemy', this.dmg, opts);
+      }
+      TG.audio.sfxEnemyShoot();
+    }
+
+    takeDamage(d) {
+      // 防御减伤：实际伤害 = max(1, 子弹伤害 − 防御值)
+      const actual = Math.max(1, Math.round(d - this.defense));
+      this.hp -= actual;
+      this.flashT = 0.12;
+      TG.particles.hit(this.cx, this.cy, Math.random() * TG.TAU, this.color);
+      // 伤害飘字（高伤橙红，普通白色）
+      const color = actual >= 15 ? '#ff8a3a' : '#ffffff';
+      TG.floatTexts.spawn(this.cx, this.cy - this.r - 4, actual, color);
+      if (this.hp <= 0) { this.alive = false; return true; }
+      // 受击偶尔嘲讽
+      if (Math.random() < 0.18) this.taunt(true);
+      return false;
+    }
+
+    render(ctx) {
+      if (!this.alive) return;
+      const scale = 1 - this.entryT / 0.6;  // 入场放大
+      ctx.save();
+      ctx.translate(this.cx, this.cy);
+      ctx.scale(scale, scale);
+      ctx.rotate(this.ang + Math.PI / 2);
+      if (this.flashT > 0) ctx.globalAlpha = 0.85;
+      this._draw(ctx);
+      if (this.flashT > 0) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.5;
+        this._shape(ctx, 0);
+        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.restore();
+
+      // 血条
+      if (this.hp < this.maxHp) {
+        const w = this.r * 2.2, h = 3;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(this.cx - w / 2, this.cy - this.r - 10, w, h);
+        ctx.fillStyle = this.hp / this.maxHp > 0.4 ? '#7fff8a' : '#ff5a5a';
+        ctx.fillRect(this.cx - w / 2, this.cy - this.r - 10, w * (this.hp / this.maxHp), h);
+      }
+
+      // 嘲讽气泡
+      if (this.bubbleT > 0 && this.bubble) {
+        this._drawBubble(ctx);
+      }
+    }
+
+    _draw(ctx) {
+      ctx.shadowColor = this.color; ctx.shadowBlur = 12;
+      ctx.fillStyle = this.color;
+      this._shape(ctx, this.r);
+      ctx.shadowBlur = 0;
+      // 核心
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, this.r * 0.25, 0, TG.TAU); ctx.fill();
+    }
+
+    _shape(ctx, r) {
+      if (this.type === 'elite') {
+        // 菱形精英
+        ctx.beginPath();
+        ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath(); ctx.fill();
+      } else if (this.type === 'sniper') {
+        // 六边形
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * TG.TAU - Math.PI / 2;
+          (i ? ctx.lineTo : ctx.moveTo).call(ctx, Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath(); ctx.fill();
+      } else if (this.type === 'diver') {
+        // 三角箭头
+        ctx.beginPath();
+        ctx.moveTo(0, r); ctx.lineTo(r, -r * 0.7); ctx.lineTo(-r, -r * 0.7); ctx.closePath(); ctx.fill();
+      } else {
+        // 圆形 grunt
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, TG.TAU); ctx.fill();
+      }
+    }
+
+    _drawBubble(ctx) {
+      const txt = this.bubble;
+      ctx.font = '13px "Segoe UI", sans-serif';
+      const tw = ctx.measureText(txt).width + 16;
+      const bx = this.cx - tw / 2, by = this.cy - this.r - 30;
+      const a = this.bubbleT > 1.9 ? (2.2 - this.bubbleT) / 0.3 : (this.bubbleT < 0.3 ? this.bubbleT / 0.3 : 1);
+      ctx.globalAlpha = TG.clamp(a, 0, 1);
+      ctx.fillStyle = 'rgba(12,18,32,0.92)';
+      ctx.strokeStyle = this.color; ctx.lineWidth = 1.5;
+      this._roundRect(ctx, bx, by, tw, 22, 6); ctx.fill(); ctx.stroke();
+      // 小尾巴
+      ctx.beginPath();
+      ctx.moveTo(this.cx - 4, by + 22); ctx.lineTo(this.cx, by + 28); ctx.lineTo(this.cx + 4, by + 22); ctx.closePath();
+      ctx.fillStyle = 'rgba(12,18,32,0.92)'; ctx.fill();
+      ctx.fillStyle = '#eaf2ff';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(txt, this.cx, by + 11);
+      ctx.globalAlpha = 1;
+    }
+    _roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // 简单分离力：避免敌人完全重叠扎堆
+    _separate(dt) {
+      const minDist = this.r * 2.4;
+      let pushX = 0, pushY = 0;
+      TG.enemies.forEach((other) => {
+        if (other === this || !other.alive) return;
+        const dx = this.cx - other.cx;
+        const dy = this.cy - other.cy;
+        const d = Math.hypot(dx, dy);
+        if (d < minDist && d > 0.1) {
+          const force = (minDist - d) / minDist * 35;
+          pushX += (dx / d) * force * dt;
+          pushY += (dy / d) * force * dt;
+        }
+      });
+      this.cx += pushX;
+      this.cy += pushY;
+    }
+
+    hitCircle() { return { x: this.cx, y: this.cy, r: this.r - 2 }; }
+  }
+
+  class EnemySystem {
+    constructor() {
+      this.pool = new TG.Pool(() => new Enemy(), (e) => { e.alive = false; }, 40);
+    }
+    clear() { this.pool.clear(); }
+    count() { return this.pool.active.length; }
+    spawn(type, x, y, tension, game) {
+      const e = this.pool.acquire();
+      e.spawn(type, x, y, tension, game);
+      return e;
+    }
+    update(dt, game) {
+      this.pool.forEach((e) => e.update(dt, game));
+      this.pool.sweep((e) => !e.alive);
+    }
+    render(ctx) { this.pool.forEach((e) => e.render(ctx)); }
+    forEach(fn) { this.pool.forEach(fn); }
+  }
+
+  TG.Enemy = Enemy;
+  TG.enemies = new EnemySystem();
+  TG.ENEMY_TYPES = TYPES;
+})(window.TG = window.TG || {});
+
+
+/* ===== boss.js ===== */
+/* =====================================================================
+ * boss.js — Boss（多阶段状态机）
+ *   - 至少 3 阶段，按血量阈值切换
+ *   - 每阶段不同攻击模式：螺旋 / 瞄准散射 / 密集弹幕+召唤
+ *   - 出场 CG 由 game 控制（震撼登场、镜头推进、名字展示）
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  // 首 Boss 基础定义（新手友好，后续可用 scale 放大）
+  const BOSS_DEF = {
+    name: '深渊执政官', title: 'Void Archon · 星际守护者之敌',
+    maxHp: 1000, r: 46, color: '#ff3a6b', accent: '#ffb0c8', defense: 5,
+    phases: [
+      // 首战 2 阶段（移除了原第3阶段"密集弹幕+召唤"）
+      { at: 1.0,  mode: 'spiral', fireCd: 0.30, bSpeed: 140, dmg: 6 },  // 原0.16/180/8
+      { at: 0.45, mode: 'aimed',  fireCd: 0.35, bSpeed: 200, dmg: 8 },  // 原0.22/260/10 @0.6
+    ],
+  };
+
+  class Boss {
+    constructor(game, scale) {
+      this.def = BOSS_DEF;
+      this.game = game;
+      this.scale = scale || 1.0;                  // 难度缩放（首战=1，高难度可放大）
+      this.cx = game.W / 2; this.cy = -80;
+      this.r = BOSS_DEF.r;
+      this.maxHp = Math.round(BOSS_DEF.maxHp * this.scale);
+      this.hp = this.maxHp;
+      this.defense = BOSS_DEF.defense;            // Boss 防御值（固定，不缩放）
+      this.ang = Math.PI / 2;
+      this.phaseIdx = 0;
+      this.mode = BOSS_DEF.phases[0].mode;
+      this.fireCd = BOSS_DEF.phases[0].fireCd / this.scale; // 缩放射速
+      this.bSpeed = Math.round(BOSS_DEF.phases[0].bSpeed * this.scale);
+      this.dmg = Math.round(BOSS_DEF.phases[0].dmg * this.scale);
+      this.fireT = 2.5;                           // 首次攻击延迟（原1.5→2.5 给玩家喘息）
+      this.spin = 0;
+      this.t = 0;
+      this.flashT = 0;
+      this.alive = true;
+      this.entering = true;        // 出场动画
+      this.enterT = 0;
+      this.targetY = game.H * 0.16;
+      this.summonT = 8;            // 召唤间隔（仅高难度 scale>1 时启用）
+      this.invuln = 0;
+    }
+
+    update(dt, game) {
+      this.t += dt;
+      this.spin += dt * 1.5;
+      this.flashT = Math.max(0, this.flashT - dt);
+      this.invuln = Math.max(0, this.invuln - dt);
+
+      if (this.entering) {
+        this.enterT += dt;
+        // 从屏幕外缓动下降到目标位置
+        const k = Math.min(1, this.enterT / 2.2);
+        this.cy = TG.lerp(-80, this.targetY, 1 - Math.pow(1 - k, 3));
+        if (k >= 1) { this.entering = false; this.invuln = 0.3; }
+        return;
+      }
+
+      // 水平游荡
+      this.cx = this.game.W / 2 + Math.sin(this.t * 0.6) * (this.game.W * 0.3);
+
+      // 阶段切换（应用 scale 缩放）
+      const ratio = this.hp / this.maxHp;
+      for (let i = BOSS_DEF.phases.length - 1; i >= 0; i--) {
+        if (ratio <= BOSS_DEF.phases[i].at && this.phaseIdx < i) {
+          this.phaseIdx = i;
+          const ph = BOSS_DEF.phases[i];
+          this.mode = ph.mode;
+          this.fireCd = ph.fireCd / this.scale;   // 缩放射速
+          this.bSpeed = Math.round(ph.bSpeed * this.scale);
+          this.dmg = Math.round(ph.dmg * this.scale);
+          game.onBossPhase(i);
+          break;
+        }
+      }
+
+      // 攻击
+      this.fireT -= dt;
+      if (this.fireT <= 0 && this.invuln <= 0) {
+        this.attack(game);
+        this.fireT = this.fireCd;
+      }
+      // 高难度（scale > 1.2）时才召唤小怪
+      if (this.scale > 1.2 && this.phaseIdx >= 1) {
+        this.summonT -= dt;
+        if (this.summonT <= 0) {
+          TG.enemies.spawn('grunt', this.cx + TG.rand(-40, 40), this.cy + this.r, game.tension, game, game.level);
+          this.summonT = 8;
+        }
+      }
+    }
+
+    attack(game) {
+      const p = game.player;
+      const ox = this.cx, oy = this.cy + this.r;
+      const opts = { color: this.def.color, r: 5, life: 4 };
+      if (this.mode === 'spiral') {
+        // 首战螺旋弹：3 发（原 4 发）
+        const n = 3;
+        for (let i = 0; i < n; i++) {
+          const a = this.spin * 2 + (i / n) * TG.TAU;
+          TG.bullets.fire(ox, oy, a, this.bSpeed, 'enemy', this.dmg, opts);
+        }
+      } else if (this.mode === 'aimed') {
+        // 瞄准散射：3 发（原 5 发），角度更宽
+        const base = p ? Math.atan2(p.cy - oy, p.cx - ox) : Math.PI / 2;
+        for (let i = -1; i <= 1; i++) {
+          TG.bullets.fire(ox, oy, base + i * 0.22, this.bSpeed, 'enemy', this.dmg, opts);
+        }
+      } else { // bullet-hell（仅高难度后备，已不在首战阶段出现）
+        const n = Math.min(8, Math.floor(6 * this.scale));
+        for (let i = 0; i < n; i++) {
+          const a = this.spin * 3 + (i / n) * TG.TAU;
+          TG.bullets.fire(ox, oy, a, this.bSpeed, 'enemy', this.dmg, opts);
+        }
+        // 高难度才加追踪弹
+        if (p && this.scale > 1.3) {
+          const a = Math.atan2(p.cy - oy, p.cx - ox);
+          TG.bullets.fire(ox, oy, a, this.bSpeed * 1.4, 'enemy', this.dmg, { ...opts, homing: 0.6, target: p });
+        }
+      }
+      TG.audio.sfxEnemyShoot();
+    }
+
+    takeDamage(d) {
+      if (this.invuln > 0 || this.entering) return false;
+      // Boss 防御减伤
+      const actual = Math.max(1, Math.round(d - this.defense));
+      this.hp -= actual;
+      this.flashT = 0.1;
+      TG.particles.hit(this.cx + TG.rand(-this.r, this.r), this.cy + TG.rand(-this.r, this.r), Math.random() * TG.TAU, this.def.color);
+      // 伤害飘字（Boss 命中用黄色）
+      TG.floatTexts.spawn(this.cx + TG.rand(-this.r, this.r), this.cy + TG.rand(-this.r, this.r), actual, '#ffd24a');
+      if (this.hp <= 0) { this.alive = false; return true; }
+      return false;
+    }
+
+    render(ctx) {
+      ctx.save();
+      ctx.translate(this.cx, this.cy);
+      const pulse = 1 + Math.sin(this.t * 3) * 0.04;
+      ctx.scale(pulse, pulse);
+      // 外环旋转装甲
+      ctx.save();
+      ctx.rotate(this.spin);
+      ctx.strokeStyle = this.def.accent; ctx.lineWidth = 3;
+      ctx.shadowColor = this.def.color; ctx.shadowBlur = 22;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TG.TAU;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * (this.r + 14), Math.sin(a) * (this.r + 14), 6, 0, TG.TAU);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // 核心
+      ctx.shadowColor = this.def.color; ctx.shadowBlur = 30;
+      const g = ctx.createRadialGradient(0, 0, 4, 0, 0, this.r);
+      g.addColorStop(0, '#fff');
+      g.addColorStop(0.4, this.def.accent);
+      g.addColorStop(1, this.def.color);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, this.r, 0, TG.TAU); ctx.fill();
+      ctx.shadowBlur = 0;
+      // 阶段指示：内圈数量
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+      for (let i = 0; i <= this.phaseIdx; i++) {
+        ctx.beginPath(); ctx.arc(0, 0, this.r * (0.55 + i * 0.12), 0, TG.TAU); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      if (this.flashT > 0) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.beginPath(); ctx.arc(0, 0, this.r, 0, TG.TAU); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.restore();
+
+      // Boss 血条（顶部）
+      if (!this.entering) this._drawBar(ctx);
+    }
+
+    _drawBar(ctx) {
+      const w = this.game.W * 0.7, h = 10, x = (this.game.W - w) / 2, y = 14;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+      ctx.fillStyle = '#2a1622';
+      ctx.fillRect(x, y, w, h);
+      const ratio = Math.max(0, this.hp / this.maxHp);
+      const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+      grad.addColorStop(0, '#ff3a6b'); grad.addColorStop(1, '#ffb0c8');
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, w * ratio, h);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(this.def.name + '  ·  ' + Math.ceil(ratio * 100) + '%', this.game.W / 2, y + h / 2);
+    }
+
+    hitCircle() { return { x: this.cx, y: this.cy, r: this.r - 4 }; }
+  }
+
+  TG.Boss = Boss;
+  TG.BOSS_DEF = BOSS_DEF;
+})(window.TG = window.TG || {});
+
+
+/* ===== player.js ===== */
+/* =====================================================================
+ * player.js — 玩家坦克
+ *   - 4 种角色，各自属性/技能侧重不同
+ *   - 移动 WASD/方向键；射击 空格/鼠标(瞄准)；技能 Q护盾 E清屏 R投降
+ *   - 自动射击开关 / 火力等级 / 护盾 / 道具计时
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  // 角色定义：HP / 速度 / 火力(基础伤害+射速) / 射速cd / 子弹速度 / 颜色 / 技能侧重
+  const CHARS = [
+    {
+      id: 'guardian', name: '守护者', title: '全能型·均衡战车',
+      hp: 120, speed: 175, dmg: 14, fireCd: 0.26, bSpeed: 560, color: '#3ad1ff', accent: '#9bf6ff',
+      desc: '攻防均衡的旗舰机型，适合新手与老兵。', tag: '均衡',
+    },
+    {
+      id: 'storm', name: '疾风', title: '突击型·高速游骑',
+      hp: 80, speed: 235, dmg: 10, fireCd: 0.18, bSpeed: 640, color: '#7cff8a', accent: '#c8ffd0',
+      desc: '机动性极强，快速射击，但身板较脆。', tag: '高速',
+    },
+    {
+      id: 'breaker', name: '重炮', title: '火力型·重型攻坚',
+      hp: 150, speed: 140, dmg: 24, fireCd: 0.42, bSpeed: 500, color: '#ffb13a', accent: '#ffe0a0',
+      desc: '单发高伤高穿透，移动缓慢，火力压制。', tag: '高伤',
+    },
+    {
+      id: 'phantom', name: '幻影', title: '特战型·量子扰动',
+      hp: 95, speed: 200, dmg: 13, fireCd: 0.24, bSpeed: 600, color: '#c06bff', accent: '#e8c8ff',
+      desc: '技能冷却更快，护盾与清屏频繁释放。', tag: '特战',
+    },
+  ];
+
+  class Player {
+    constructor(charId, game, pidx) {
+      const c = CHARS.find((x) => x.id === charId) || CHARS[0];
+      this.char = c;
+      this.game = game;
+      this.pidx = pidx || 0;  // 0=玩家1, 1=玩家2
+      this.W = game.W; this.H = game.H;
+      // 双人模式下分屏站位：P1 右下偏移，P2 左下偏移
+      if (this.pidx === 1) {
+        this.cx = this.W * 0.3; this.cy = this.H * 0.78;
+      } else {
+        this.cx = game.player2 ? this.W * 0.7 : this.W / 2; // 若有P2则P1偏右，单人居中
+        this.cy = this.H * 0.78;
+      }
+      this.r = 18;                                       // 碰撞半径
+      this.maxHp = c.hp; this.hp = c.hp;
+      this.speed = c.speed;
+      this.dmg = c.dmg;
+      this.fireCd = c.fireCd;
+      this.bSpeed = c.bSpeed;
+      this.color = c.color; this.accent = c.accent;
+      this.ang = -Math.PI / 2;                            // 炮塔朝向（默认向上）
+      this.fireT = 0;
+      this.autoFire = true;
+      this.alive = true;                                  // 存活标记
+      // 技能冷却（秒）
+      this.skShieldCd = 0; this.skShieldMax = c.id === 'phantom' ? 7 : 12;
+      this.skClearCd = 0; this.skClearMax = c.id === 'phantom' ? 14 : 20;
+      this.shield = 0; this.shieldMax = 4;               // 护盾持续时间
+      // 道具增益计时
+      this.pwrUp = 1; this.pwrMax = 1;                   // 火力倍率（默认1=满火力）
+      this.spdUp = 1; this.spdMax = 1;                  // 速度倍率（默认1=满速度）
+      this.scoreMul = 1; this.scoreMulT = 0;
+      this.invuln = 1.0;                                  // 出生短暂无敌
+      this.thrustT = 0;
+      this.flashT = 0;                                    // 受击闪烁
+      // 幻影残影系统
+      this._trail = [];               // 历史位置记录
+      this._trailT = 0;                // 采样计时
+      this._lastTrailX = this.cx;     // 上次采样位置
+      this._lastTrailY = this.cy;
+      // PK 模式下 P2 使用不同的子弹颜色以区分
+      if (this.pidx === 1) {
+        this.accent = c.id === 'guardian' ? '#ffb13a' : '#ff5a8a';
+      }
+    }
+
+    // 输入处理（每帧），根据 pidx 使用不同键位
+    control(input, dt, mouse) {
+      const g = this.game;
+      let mx = 0, my = 0;
+      if (this.pidx === 0) {
+        // 玩家1：WASD
+        if (input.has('KeyW')) my -= 1;
+        if (input.has('KeyS')) my += 1;
+        if (input.has('KeyA')) mx -= 1;
+        if (input.has('KeyD')) mx += 1;
+      } else {
+        // 玩家2：方向键
+        if (input.has('ArrowUp')) my -= 1;
+        if (input.has('ArrowDown')) my += 1;
+        if (input.has('ArrowLeft')) mx -= 1;
+        if (input.has('ArrowRight')) mx += 1;
+      }
+      if (mx || my) {
+        const len = Math.hypot(mx, my);
+        mx /= len; my /= len;
+        const sp = this.speed * this.spdUp * dt;
+        this.cx = TG.clamp(this.cx + mx * sp, this.r, this.W - this.r);
+        this.cy = TG.clamp(this.cy + my * sp, this.r, this.H - this.r);
+        // 引擎尾焰
+        this.thrustT -= dt;
+        if (this.thrustT <= 0) {
+          TG.particles.thrust(this.cx, this.cy, Math.atan2(-my, -mx), this.accent);
+          this.thrustT = 0.03;
+        }
+      }
+      // 炮塔瞄准：P1 鼠标优先否则自动瞄准；P2 始终自动瞄准最近敌人
+      let aimAng = this.ang;
+      if (this.pidx === 0 && mouse.active) {
+        aimAng = Math.atan2(mouse.y - this.cy, mouse.x - this.cx);
+      } else {
+        const t = g.nearestEnemy(this.cx, this.cy, this.pidx);
+        if (t) aimAng = Math.atan2(t.cy - this.cy, t.cx - this.cx);
+      }
+      this.ang = TG.turnToward(this.ang, aimAng, 12 * dt);
+
+      // 射击
+      this.fireT -= dt;
+      let wantShoot = this.autoFire;
+      if (this.pidx === 0) {
+        wantShoot = input.has('Space') || mouse.down || this.autoFire;
+      } else {
+        // P2：斜杠键(/) 或 小键盘0(Numpad0)
+        wantShoot = input.has('Slash') || input.has('Numpad0') || this.autoFire;
+      }
+      if (wantShoot && this.fireT <= 0) {
+        this.shoot();
+        this.fireT = this.fireCd * (this.pwrUp >= 2 ? 0.85 : 1);
+      }
+    }
+
+    shoot() {
+      const g = this.game;
+      const ox = this.cx + Math.cos(this.ang) * (this.r + 6);
+      const oy = this.cy + Math.sin(this.ang) * (this.r + 6);
+      const dmg = this.dmg * this.pwrUp;
+      const opts = { color: this.accent, r: 4, pierce: this.pwrUp >= 2 ? 1 : 0, life: 2.2, shape: 'round' };
+      // 火力等级越高，散射弹数越多
+      const lvl = Math.min(3, Math.floor(this.pwrUp));
+      if (lvl <= 1) {
+        const b = TG.bullets.fire(ox, oy, this.ang, this.bSpeed, 'player', dmg, opts);
+        if (b) b.owner = this.pidx; // 标记子弹所有者（PK模式区分）
+      } else {
+        const spread = 0.12;
+        for (let i = -Math.floor((lvl - 1) / 2); i <= Math.floor((lvl - 1) / 2); i++) {
+          const b = TG.bullets.fire(ox, oy, this.ang + i * spread, this.bSpeed, 'player', dmg, opts);
+          if (b) b.owner = this.pidx;
+        }
+      }
+      TG.particles.muzzle(ox, oy, this.ang, this.accent);
+      TG.audio.sfxShoot();
+      g.shake(2, 0.05);
+    }
+
+    // 技能：护盾
+    skillShield() {
+      if (this.skShieldCd > 0 || this.shield > 0) return false;
+      this.shield = this.shieldMax;
+      this.skShieldCd = this.skShieldMax;
+      TG.audio.sfxShield();
+      this.game.stats.shieldUsed++;
+      this.game.ach.check('shield', this.game.stats.shieldUsed);
+      return true;
+    }
+    // 技能：全屏清屏
+    skillClear() {
+      if (this.skClearCd > 0) return false;
+      this.skClearCd = this.skClearMax;
+      TG.audio.sfxClear();
+      TG.particles.shockwave(this.cx, this.cy, this.accent);
+      this.game.shake(10, 0.4);
+      this.game.onClearScreen();
+      this.game.stats.clearUsed++;
+      this.game.ach.check('clear', this.game.stats.clearUsed);
+      return true;
+    }
+
+    takeDamage(d, attackerIdx) {
+      if (this.invuln > 0 || this.shield > 0) return false;
+      this.hp -= d;
+      this.flashT = 0.25;
+      this.invuln = 0.6;
+      TG.audio.sfxHurt();
+      this.game.shake(8, 0.25);
+      this.game.redFlash(0.5);
+      this.game.stats.tookDamage = true;
+      this.game.ach.check('hurt', 0);
+      if (this.hp <= 0) {
+        this.hp = 0; this.alive = false;
+        this.game.onPlayerDeath(this.pidx, attackerIdx);
+      }
+      return true;
+    }
+
+    heal(v) { this.hp = Math.min(this.maxHp, this.hp + v); }
+
+    applyPowerup(type) {
+      const g = this.game;
+      switch (type) {
+        case 'fire':
+          this.pwrUp = Math.min(3, this.pwrUp + 0.5); this.pwrMax = this.pwrUp;
+          if (this.pwrUp >= 3) g.ach.unlock('maxfire'); break;
+        case 'speed':
+          this.spdUp = 1.45; this.spdMax = 1.45; break;
+        case 'shield':
+          this.shield = Math.max(this.shield, this.shieldMax); break;
+        case 'heal':
+          this.heal(this.maxHp * 0.35); break;
+        case 'score':
+          this.scoreMul = 2; this.scoreMulT = 10; break;
+      }
+      g.stats.powerups++;
+      g.ach.check('powerup', g.stats.powerups);
+      g.audio.sfxPickup();
+      g.toast('拾取道具：' + POWERUP_NAMES[type]);
+    }
+
+    update(dt) {
+      this.fireT -= 0; // 已在 control 处理
+      this.skShieldCd = Math.max(0, this.skShieldCd - dt);
+      this.skClearCd = Math.max(0, this.skClearCd - dt);
+      this.shield = Math.max(0, this.shield - dt);
+      this.invuln = Math.max(0, this.invuln - dt);
+      this.flashT = Math.max(0, this.flashT - dt);
+      this.scoreMulT = Math.max(0, this.scoreMulT - dt);
+      if (this.scoreMulT <= 0) this.scoreMul = 1;
+      if (this.spdMax > 1) { this.spdMax -= dt * 0.0; /* 维持到换档：简化为持续 */ }
+      // 护盾环粒子
+      if (this.shield > 0) TG.particles.shieldRing(this.cx, this.cy, this.r + 8, this.accent);
+
+      // ====== 幻影残影：记录历史位置 ======
+      this._trailT -= dt;
+      if (this._trailT <= 0) {
+        // 仅在移动时记录残影（位移 >1px 才算移动）
+        if (Math.abs(this.cx - this._lastTrailX) > 1 || Math.abs(this.cy - this._lastTrailY) > 1) {
+          this._trail.push({ x: this.cx, y: this.cy, ang: this.ang, age: 0 });
+          if (this._trail.length > 10) this._trail.shift();   // 限制数量
+        }
+        this._lastTrailX = this.cx; this._lastTrailY = this.cy;
+        this._trailT = 0.04;                                    // 每 40ms 采样
+      }
+      // 残影老化 + 清理
+      for (const t of this._trail) t.age += dt;
+      this._trail = this._trail.filter((t) => t.age < 0.3);   // 0.3秒后消失
+    }
+
+    render(ctx) {
+      // 幻影残影（在车身之前绘制）
+      this._renderTrail(ctx);
+      ctx.save();
+      ctx.translate(this.cx, this.cy);
+      // 护盾
+      if (this.shield > 0) {
+        ctx.globalAlpha = 0.3 + 0.2 * Math.sin(performance.now() / 90);
+        ctx.strokeStyle = this.accent;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = this.accent; ctx.shadowBlur = 18;
+        ctx.beginPath(); ctx.arc(0, 0, this.r + 10, 0, TG.TAU); ctx.stroke();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      }
+      // 无敌闪烁
+      if (this.invuln > 0 && this.shield <= 0 && Math.floor(this.invuln * 20) % 2 === 0) {
+        ctx.globalAlpha = 0.5;
+      }
+      // 受击红色覆盖
+      if (this.flashT > 0) { ctx.globalAlpha *= 0.9; }
+      // 车身
+      ctx.rotate(this.ang + Math.PI / 2);
+      this._drawBody(ctx);
+      ctx.restore();
+
+      if (this.flashT > 0) { ctx.globalAlpha = 1; }
+    }
+
+    // 绘制幻影残影：历史位置的半透明剪影，随时间淡出
+    _renderTrail(ctx) {
+      const r = this.r;
+      for (const t of this._trail) {
+        const a = (1 - t.age / 0.3) * 0.25;  // 最大 25% 透明度，渐隐
+        if (a <= 0.01) continue;
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.translate(t.x, t.y);
+        // 车身剪影
+        ctx.rotate(t.ang + Math.PI / 2);
+        ctx.shadowColor = this.color; ctx.shadowBlur = 8;
+        ctx.fillStyle = this.color;
+        this._roundRect(ctx, -r, -r + 2, r * 2, r * 2 - 4, 4);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // 炮管剪影
+        ctx.rotate(-(t.ang + Math.PI / 2));
+        ctx.rotate(t.ang);
+        ctx.fillStyle = this.accent;
+        ctx.fillRect(0, -3, r + 8, 6);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    _drawBody(ctx) {
+      const r = this.r;
+      // 履带
+      ctx.fillStyle = '#16243a';
+      ctx.fillRect(-r - 4, -r + 2, r * 2 + 8, 5);
+      ctx.fillRect(-r - 4, r - 7, r * 2 + 8, 5);
+      ctx.fillStyle = '#243a55';
+      for (let i = -r; i < r; i += 6) {
+        ctx.fillRect(i, -r + 2, 3, 5);
+        ctx.fillRect(i, r - 7, 3, 5);
+      }
+      // 车体
+      ctx.shadowColor = this.color; ctx.shadowBlur = 14;
+      ctx.fillStyle = this.color;
+      this._roundRect(ctx, -r, -r + 2, r * 2, r * 2 - 4, 4);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // 装甲条纹
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(-r + 3, -r + 6, r * 2 - 6, 3);
+      // 核心发光
+      ctx.fillStyle = this.accent;
+      ctx.beginPath(); ctx.arc(0, 0, 5, 0, TG.TAU); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, 2.4, 0, TG.TAU); ctx.fill();
+      // 炮塔旋转回正以画炮管
+      ctx.rotate(-(this.ang + Math.PI / 2));
+      // 炮管（朝 ang 方向）
+      ctx.rotate(this.ang);
+      ctx.fillStyle = this.accent;
+      ctx.shadowColor = this.accent; ctx.shadowBlur = 10;
+      ctx.fillRect(0, -3, r + 10, 6);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(r + 4, -1.5, 4, 3);
+    }
+
+    _roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // 碰撞圆
+    hitCircle() { return { x: this.cx, y: this.cy, r: this.r - 2 }; }
+  }
+
+  const POWERUP_NAMES = { fire: '火力提升', speed: '速度提升', shield: '护盾充能', heal: '生命恢复', score: '分数加倍' };
+
+  TG.Player = Player;
+  TG.CHARS = CHARS;
+  TG.POWERUP_NAMES = POWERUP_NAMES;
+})(window.TG = window.TG || {});
+
+
+/* ===== achievement.js ===== */
+/* =====================================================================
+ * achievement.js — 成就勋章系统
+ *   - 26 个成就，存 localStorage（含获得时间 年月日时分）
+ *   - 解锁实时弹窗提示
+ *   - 勋章展馆：已得高亮 / 未得灰色锁定
+ *   - 难度分级：简单 / 中等 / 较难
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  // 成就定义：id / 名称 / 描述 / 图标符号 / 难度档
+  const DEFS = [
+    // ====== 原有成就（简单~中等） ======
+    { id: 'first_battle', name: '初次上阵', desc: '开始你的第一场战斗', icon: '★', tier: '简单' },
+    { id: 'first_kill', name: '首杀时刻', desc: '击杀第一个敌人', icon: '✦', tier: '简单' },
+    { id: 'kill50', name: '屠戮者', desc: '单局击杀 50 个敌人', icon: '☠', tier: '中等' },
+    { id: 'elite10', name: '精英猎手', desc: '单局击杀 10 个精英', icon: '◈', tier: '中等' },
+    { id: 'boss', name: 'Boss 终结者', desc: '击败深渊执政官', icon: '♛', tier: '中等' },
+    { id: 'nohurt_wave', name: '无伤之盾', desc: '一波内未受伤', icon: '⛨', tier: '简单' },
+    { id: 'combo50', name: '连击大师', desc: '达到 50 连击', icon: '⚡', tier: '中等' },
+    { id: 'score10k', name: '得分破万', desc: '单局得分超过 10000', icon: '◆', tier: '中等' },
+    { id: 'clear_skill', name: '清屏艺术家', desc: '使用清屏技能', icon: '✺', tier: '简单' },
+    { id: 'surrender', name: '投降的勇气', desc: '主动投降一次', icon: '🏳', tier: '简单' },
+    { id: 'shield10', name: '护盾大师', desc: '累计使用护盾 10 次', icon: '◯', tier: '中等' },
+    { id: 'pickup10', name: '拾荒者', desc: '累计拾取 10 个道具', icon: '✚', tier: '中等' },
+    { id: 'maxfire', name: '满级火力', desc: '火力提升到最高等级', icon: '✸', tier: '中等' },
+    { id: 'clear_all', name: '通关勇士', desc: '击败 Boss 完成最终防线', icon: '✯', tier: '中等' },
+    { id: 'star_guardian', name: '星际守护者', desc: '单局得分超过 50000', icon: '✪', tier: '较难' },
+    // ====== 新增成就（简单→较难） ======
+    { id: 'coop_win', name: '同袍之义', desc: '双人合作模式通关', icon: '♔', tier: '简单' },
+    { id: 'pk_win', name: '决斗之王', desc: '双人对决中获胜', icon: '⚔', tier: '简单' },
+    { id: 'surrender3', name: '逃离主义者', desc: '累计投降 3 次', icon: '⚐', tier: '简单' },
+    { id: 'kill200', name: '歼灭者', desc: '单局击杀 200 个敌人', icon: '☢', tier: '较难' },
+    { id: 'combo100', name: '连击至尊', desc: '达到 100 连击', icon: '✴', tier: '较难' },
+    { id: 'no_items', name: '苦修战士', desc: '整局未拾取任何道具并通关', icon: '⊘', tier: '中等' },
+    { id: 'clear3_win', name: '三重净化', desc: '单局使用 3 次清屏并通关', icon: '✹', tier: '中等' },
+    { id: 'inferno_win', name: '炼狱行者', desc: '炼狱难度通关', icon: '☄', tier: '较难' },
+    { id: 'no_skill', name: '禁欲行者', desc: '全程不使用护盾与清屏通关', icon: '⊗', tier: '较难' },
+    { id: 'low_hp_kill', name: '逆血反杀', desc: '血量低于 10% 时击杀 Boss', icon: '♡', tier: '较难' },
+    { id: 'untouchable', name: '不坏金身', desc: '整局未受任何伤害通关', icon: '⛊', tier: '较难' },
+  ];
+
+  class Achievement {
+    constructor() {
+      this.defs = DEFS;
+      this.unlocked = {};   // id -> 时间字符串
+      this.queue = [];      // 待弹窗队列
+      this._load();
+      this._stats = {};     // 跨局累计（护盾使用/拾取）
+    }
+    _load() {
+      this.unlocked = TG.store.get('tk_ach', {});
+      this._stats = TG.store.get('tk_ach_stats', {});
+    }
+    _save() { TG.store.set('tk_ach', this.unlocked); TG.store.set('tk_ach_stats', this._stats); }
+
+    all() { return this.defs; }
+    isUnlocked(id) { return !!this.unlocked[id]; }
+    count() { return this.defs.filter((d) => this.unlocked[d.id]).length; }
+
+    // 返回已解锁成就按获得时间排序（从早到晚）
+    unlockedSorted() {
+      return this.defs
+        .filter((d) => this.unlocked[d.id])
+        .map((d) => ({ def: d, time: this.unlocked[d.id] }))
+        .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+    }
+
+    // 返回未解锁成就列表
+    lockedList() {
+      return this.defs.filter((d) => !this.unlocked[d.id]);
+    }
+
+    // 累计统计
+    addStat(key, n) { this._stats[key] = (this._stats[key] || 0) + n; this._save(); }
+    stat(key) { return this._stats[key] || 0; }
+
+    // 触发检查（按事件类型）
+    check(event, value) {
+      switch (event) {
+        case 'battle_start': this.unlock('first_battle'); break;
+        case 'first_kill': this.unlock('first_kill'); break;
+        case 'kills':
+          if (value >= 50) this.unlock('kill50');
+          if (value >= 200) this.unlock('kill200');         // 新增：歼灭者
+          break;
+        case 'elite': if ((value || 0) >= 10) this.unlock('elite10'); break;
+        case 'boss':
+          this.unlock('boss'); this.unlock('clear_all');
+          break;
+        case 'boss_lowhp': this.unlock('low_hp_kill'); break;  // 新增：逆血反杀
+        case 'combo':
+          if (value >= 50) this.unlock('combo50');
+          if (value >= 100) this.unlock('combo100');         // 新增：连击至尊
+          break;
+        case 'score':
+          if (value >= 10000) this.unlock('score10k');
+          if (value >= 50000) this.unlock('star_guardian');
+          break;
+        case 'clear': this.unlock('clear_skill'); break;
+        case 'surrender':
+          this.unlock('surrender');
+          this.addStat('surrender', 1);                       // 新增：逃离主义者
+          if (this.stat('surrender') >= 3) this.unlock('surrender3');
+          break;
+        case 'shield':
+          this.addStat('shield', 1);
+          if (this.stat('shield') >= 10) this.unlock('shield10');
+          break;
+        case 'powerup':
+          this.addStat('pickup', 1);
+          if (this.stat('pickup') >= 10) this.unlock('pickup10');
+          break;
+        case 'maxfire': this.unlock('maxfire'); break;
+        case 'nohurt': this.unlock('nohurt_wave'); break;
+        // 新增：通关时综合检查（value 为条件对象）
+        case 'win':
+          if (value) {
+            if (value.coop) this.unlock('coop_win');         // 同袍之义
+            if (value.pk) this.unlock('pk_win');             // 决斗之王
+            if (value.inferno) this.unlock('inferno_win');   // 炼狱行者
+            if (value.noItems) this.unlock('no_items');     // 苦修战士
+            if (value.clear3) this.unlock('clear3_win');    // 三重净化
+            if (value.noSkill) this.unlock('no_skill');     // 禁欲行者
+            if (value.noDamage) this.unlock('untouchable'); // 不坏金身
+          }
+          break;
+      }
+    }
+
+    unlock(id) {
+      if (this.unlocked[id]) return false;
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const time = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      this.unlocked[id] = time;
+      this._save();
+      const def = this.defs.find((d) => d.id === id);
+      if (def) {
+        this.queue.push({ def, time });
+        TG.audio && TG.audio.sfxAchievement();
+      }
+      return true;
+    }
+
+    // 取一个待弹窗
+    pop() { return this.queue.shift() || null; }
+    hasPop() { return this.queue.length > 0; }
+  }
+
+  TG.Achievement = Achievement;
+})(window.TG = window.TG || {});
+
+
+/* ===== ui.js ===== */
+/* =====================================================================
+ * ui.js — 界面状态机（DOM 覆盖层）
+ *   屏幕：loading / menu / char / level / settings / pause / results / gallery
+ *   组件：HUD / 技能冷却 / 成就弹窗 / 提示条 / 确认框 / Boss 出场 CG
+ *   所有屏幕由 JS 动态构建，便于单文件内联
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  // 构造一个带 sci-fi 样式的按钮
+  function btn(label, sub, onClick) {
+    const b = document.createElement('button');
+    b.className = 'tg-btn';
+    const s1 = document.createElement('span'); s1.className = 'tg-btn-label'; s1.textContent = label;
+    b.appendChild(s1);
+    if (sub) { const s2 = document.createElement('span'); s2.className = 'tg-btn-sub'; s2.textContent = sub; b.appendChild(s2); }
+    b.addEventListener('mouseenter', () => TG.audio.sfxHover());
+    b.addEventListener('click', () => { TG.audio.sfxClick(); onClick && onClick(); });
+    return b;
+  }
+
+  class UI {
+    constructor(game) {
+      this.game = game;
+      this.root = document.getElementById('ui-root');
+      this.screens = {};
+      this.hudEl = null;
+      this.toastT = 0;
+      this._build();
+    }
+
+    // ---------- 构建所有屏幕 ----------
+    _build() {
+      this._css(); // 注入少量动态样式（主体样式在 style.css）
+      this._buildLoading();
+      this._buildMenu();
+      this._buildChar();
+      this._buildMode();
+      this._buildLevel();
+      this._buildTutorial();
+      this._buildSettings();
+      this._buildPause();
+      this._buildResults();
+      this._buildGallery();
+      this._buildHUD();
+      this._buildToasts();
+      this._buildConfirm();
+      this._buildBossCG();
+    }
+
+    _css() { /* 主样式已在 style.css，此处留空占位 */ }
+
+    _screen(id, cls) {
+      const d = document.createElement('div');
+      d.className = 'screen ' + (cls || '');
+      d.id = 'screen-' + id;
+      this.root.appendChild(d);
+      this.screens[id] = d;
+      return d;
+    }
+
+    // ---- Loading ----
+    _buildLoading() {
+      const s = this._screen('loading');
+      s.innerHTML = `
+        <div class="load-wrap">
+          <div class="load-ring"></div>
+          <h1 class="game-title">坦克大战 <span class="sub">星际守护者</span></h1>
+          <div class="load-bar"><i id="load-fill"></i></div>
+          <p class="load-tip" id="load-tip">初始化武器系统…</p>
+        </div>`;
+    }
+
+    // ---- 主菜单 ----
+    _buildMenu() {
+      const s = this._screen('menu');
+      s.innerHTML = `
+        <div class="meteor-layer" id="meteor-layer"></div>
+        <div class="menu-bg-glow"></div>
+        <h1 class="game-title big">坦克大战<span class="sub">星际守护者</span></h1>
+        <p class="game-tagline">深空防线 · 霓虹机甲 · 守护星河</p>
+        <div class="menu-btns" id="menu-btns"></div>
+        <div class="menu-foot" id="menu-foot"></div>`;
+      const box = s.querySelector('#menu-btns');
+      box.appendChild(btn('开始游戏', 'START', () => this.game.go('char')));
+      box.appendChild(btn('游戏简介', 'TUTORIAL', () => this.game.go('tutorial')));
+      box.appendChild(btn('勋章展馆', 'TROPHIES', () => this.game.go('gallery')));
+      box.appendChild(btn('设置', 'OPTIONS', () => this.game.go('settings')));
+      box.appendChild(btn('退出', 'QUIT', () => this._confirmExit()));
+      s.querySelector('#menu-foot').textContent = `最高分：${this.game.bestScore}  ·  勋章：${this.game.ach.count()}/${this.game.ach.all().length}`;
+    }
+    _confirmExit() {
+      this.showConfirm('退出游戏？（可关闭标签页）', '回到主菜单', '取消', () => { /* nothing */ });
+    }
+
+    // ---- 角色选择 ----
+    _buildChar() {
+      const s = this._screen('char');
+      s.innerHTML = `
+        <h2 class="screen-title">选择你的战车</h2>
+        <p class="screen-hint">单击选中 · 双击确认</p>
+        <div class="char-grid" id="char-grid"></div>
+        <div class="screen-actions" id="char-actions"></div>`;
+      this._refreshChars();
+      const act = s.querySelector('#char-actions');
+      act.appendChild(btn('返回', 'BACK', () => this.game.go('menu')));
+      act.appendChild(btn('下一步 ▶ 选择模式', 'NEXT', () => this.game.go('mode')));
+    }
+    _refreshChars() {
+      const grid = this.screens.char.querySelector('#char-grid');
+      grid.innerHTML = '';
+      TG.CHARS.forEach((c) => {
+        const card = document.createElement('div');
+        card.className = 'char-card';
+        if (this.game.selectedChar === c.id) card.classList.add('selected');
+        const bars = this._statBars(c);
+        card.innerHTML = `
+          <div class="char-avatar" style="--cc:${c.color};--ca:${c.accent}"><canvas width="120" height="120"></canvas></div>
+          <h3>${c.name}</h3>
+          <p class="char-title">${c.title}</p>
+          <span class="char-tag">${c.tag}</span>
+          <div class="char-stats">${bars}</div>
+          <p class="char-desc">${c.desc}</p>`;
+        card.addEventListener('mouseenter', () => TG.audio.sfxHover());
+        // 单击：仅选中角色（不跳转）
+        card.addEventListener('click', () => {
+          TG.audio.sfxClick();
+          this.game.selectedChar = c.id;
+          this._refreshChars();
+        });
+        // 双击：选中角色并跳转到模式选择
+        card.addEventListener('dblclick', () => {
+          TG.audio.sfxClick();
+          this.game.selectedChar = c.id;
+          this.game.go('mode');
+        });
+        grid.appendChild(card);
+        this._drawAvatar(card.querySelector('canvas'), c);
+      });
+    }
+    _statBars(c) {
+      const stat = (label, val, max, color) => `
+        <div class="stat"><span>${label}</span><div class="bar"><i style="width:${(val / max) * 100}%;background:${color}"></i></div></div>`;
+      return stat('生命', c.hp, 160, '#ff5a8a') + stat('速度', c.speed, 240, '#7cff8a') +
+        stat('火力', c.dmg, 26, '#ffb13a') + stat('射速', 1 / c.fireCd, 6, '#3ad1ff');
+    }
+    _drawAvatar(cv, c) {
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, 120, 120);
+      const t = performance.now() / 1000;
+      ctx.save(); ctx.translate(60, 64); ctx.rotate(t * 0.4);
+      ctx.shadowColor = c.color; ctx.shadowBlur = 16;
+      ctx.fillStyle = c.color;
+      ctx.fillRect(-22, -16, 44, 32);
+      ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(0, 0, 6, 0, TG.TAU); ctx.fill();
+      ctx.restore();
+      ctx.save(); ctx.translate(60, 64); ctx.rotate(-Math.PI / 2 + Math.sin(t) * 0.2);
+      ctx.fillStyle = c.accent; ctx.fillRect(0, -3, 36, 6);
+      ctx.restore();
+      // 不断刷新
+      if (!cv._raf) {
+        const loop = () => { this._drawAvatarFrame(cv, c); cv._raf = requestAnimationFrame(loop); };
+        cv._raf = requestAnimationFrame(loop);
+      }
+    }
+    _drawAvatarFrame(cv, c) {
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, 120, 120);
+      const t = performance.now() / 1000;
+      ctx.save(); ctx.translate(60, 66);
+      ctx.fillStyle = '#16243a'; ctx.fillRect(-30, -20, 60, 8); ctx.fillRect(-30, 12, 60, 8);
+      ctx.save(); ctx.rotate(t * 0.4);
+      ctx.shadowColor = c.color; ctx.shadowBlur = 14; ctx.fillStyle = c.color;
+      ctx.fillRect(-22, -14, 44, 28);
+      ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(0, 0, 5, 0, TG.TAU); ctx.fill();
+      ctx.restore();
+      ctx.save(); ctx.rotate(-Math.PI / 2 + Math.sin(t) * 0.25);
+      ctx.fillStyle = c.accent; ctx.shadowColor = c.accent; ctx.shadowBlur = 10;
+      ctx.fillRect(0, -3, 34, 6); ctx.shadowBlur = 0;
+      ctx.restore();
+      ctx.restore();
+    }
+
+    // ---- 模式选择 ----
+    _buildMode() {
+      const s = this._screen('mode');
+      s.innerHTML = `
+        <h2 class="screen-title">选择游戏模式</h2>
+        <div class="mode-grid" id="mode-grid"></div>
+        <div class="screen-actions" id="mode-actions"></div>`;
+      const grid = s.querySelector('#mode-grid');
+      const MODES = [
+        { id: 'single', name: '单人模式', desc: '独自迎战，守护星河。', tag: '1P', icon: '🎮' },
+        { id: 'coop', name: '双人合作', desc: '两名玩家同阵营，共同对抗AI敌人通关。', tag: '2P COOP', icon: '🤝' },
+        { id: 'pk', name: '双人对决', desc: '两名玩家互相对抗，击杀对方获分，比积分定胜负。', tag: '2P PK', icon: '⚔' },
+      ];
+      MODES.forEach((m) => {
+        const card = document.createElement('div');
+        card.className = 'mode-card';
+        if (this.game.gameMode === m.id) card.classList.add('selected');
+        card.innerHTML = `
+          <div class="mode-icon">${m.icon}</div>
+          <h3>${m.name}</h3>
+          <span class="mode-tag">${m.tag}</span>
+          <p>${m.desc}</p>`;
+        card.addEventListener('mouseenter', () => TG.audio.sfxHover());
+        card.addEventListener('click', () => {
+          TG.audio.sfxClick();
+          this.game.gameMode = m.id;
+          this._refreshModes();
+        });
+        grid.appendChild(card);
+      });
+      this._refreshModes();
+      const act = s.querySelector('#mode-actions');
+      act.appendChild(btn('返回', 'BACK', () => this.game.go('char')));
+      act.appendChild(btn('下一步 ▶ 选择难度', 'NEXT', () => this.game.go('level')));
+    }
+    _refreshModes() {
+      const grid = this.screens.mode.querySelector('#mode-grid');
+      if (!grid) return;
+      const modes = ['single', 'coop', 'pk'];
+      [...grid.children].forEach((card, i) => {
+        card.classList.toggle('selected', this.game.gameMode === modes[i]);
+      });
+    }
+
+    // ---- 关卡/难度选择 ----
+    _buildLevel() {
+      const s = this._screen('level');
+      s.innerHTML = `
+        <h2 class="screen-title">选择战线难度</h2>
+        <div class="level-grid" id="level-grid"></div>
+        <div class="screen-actions" id="level-actions"></div>`;
+      const grid = s.querySelector('#level-grid');
+      const LEVELS = [
+        { id: 'easy', name: '巡弋战线', desc: '敌人稀少，节奏舒缓，适合热身。', tag: '★', grow: 0.6 },
+        { id: 'normal', name: '标准防线', desc: '均衡的紧张度成长，推荐。', tag: '★★', grow: 1.0 },
+        { id: 'hard', name: '深渊突袭', desc: '敌人凶猛密集，弹幕如雨。', tag: '★★★', grow: 1.5 },
+        { id: 'inferno', name: '炼狱终局', desc: '极限挑战，唯有守护者可存。', tag: '★★★★', grow: 2.0 },
+      ];
+      LEVELS.forEach((l) => {
+        const card = document.createElement('div');
+        card.className = 'level-card';
+        if (this.game.selectedLevel === l.id) card.classList.add('selected');
+        card.innerHTML = `
+          <div class="level-thumb"><canvas width="180" height="100"></canvas><span class="level-tag">${l.tag}</span></div>
+          <h3>${l.name}</h3>
+          <p>${l.desc}</p>`;
+        card.addEventListener('mouseenter', () => TG.audio.sfxHover());
+        card.addEventListener('click', () => {
+          TG.audio.sfxClick();
+          this.game.selectedLevel = l.id;
+          this.game.levelGrow = l.grow;
+          this._refreshLevels();
+        });
+        grid.appendChild(card);
+      });
+      this._refreshLevels();
+      const act = s.querySelector('#level-actions');
+      act.appendChild(btn('返回', 'BACK', () => this.game.go('mode')));
+      act.appendChild(btn('出击！', 'DEPLOY', () => this.game.startBattle()));
+    }
+    _refreshLevels() {
+      const grid = this.screens.level.querySelector('#level-grid');
+      [...grid.children].forEach((card, i) => {
+        const lv = ['easy', 'normal', 'hard', 'inferno'][i];
+        card.classList.toggle('selected', this.game.selectedLevel === lv);
+        const cv = card.querySelector('canvas');
+        if (!cv._raf) {
+          const loop = () => { this._drawLevelThumb(cv, i); cv._raf = requestAnimationFrame(loop); };
+          cv._raf = requestAnimationFrame(loop);
+        }
+      });
+    }
+    _drawLevelThumb(cv, i) {
+      const ctx = cv.getContext('2d');
+      const W = 180, H = 100;
+      ctx.fillStyle = '#0a0f1a'; ctx.fillRect(0, 0, W, H);
+      const t = performance.now() / 1000;
+      const colors = ['#3ad1ff', '#7cff8a', '#ffb13a', '#ff3a6b'];
+      const c = colors[i];
+      // 星点
+      ctx.fillStyle = '#2a3a55';
+      for (let k = 0; k < 30; k++) {
+        const x = (k * 53 + t * 20) % W, y = (k * 37) % H;
+        ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t + k));
+        ctx.fillRect(x, y, 2, 2);
+      }
+      ctx.globalAlpha = 1;
+      // 中心机甲轮廓
+      ctx.save(); ctx.translate(W / 2, H / 2 + Math.sin(t * 2) * 4);
+      ctx.shadowColor = c; ctx.shadowBlur = 12; ctx.fillStyle = c;
+      ctx.fillRect(-16, -12, 32, 24);
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, TG.TAU); ctx.fill();
+      ctx.restore();
+    }
+
+    // ---- 游戏简介 / 教程 ----
+    _buildTutorial() {
+      const s = this._screen('tutorial');
+      s.innerHTML = `
+        <h2 class="screen-title">游戏简介</h2>
+        <div class="tutorial-wrap">
+          <div class="tut-section">
+            <h3>🎮 目标</h3>
+            <p>单人/合作：击败Boss守护星河，通过波次推进最终防线。</p>
+            <p>PK对决：两名玩家互相对抗，击杀对方获分，比积分定胜负。</p>
+          </div>
+          <div class="tut-section">
+            <h3>🕹 移动</h3>
+            <div class="tut-keys">
+              <div class="tut-key-group"><span class="tut-label">玩家1</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+              <div class="tut-key-group"><span class="tut-label">玩家2</span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></div>
+            </div>
+          </div>
+          <div class="tut-section">
+            <h3>🔫 射击</h3>
+            <div class="tut-keys">
+              <div class="tut-key-group"><span class="tut-label">玩家1</span><kbd>空格</kbd><kbd>鼠标左键</kbd></div>
+              <div class="tut-key-group"><span class="tut-label">玩家2</span><kbd>/</kbd><kbd>Numpad0</kbd></div>
+              <div class="tut-key-group"><span class="tut-label">自动射击</span><kbd>F</kbd> 开关</div>
+            </div>
+            <p class="tut-note">P1 使用鼠标瞄准，P2 自动瞄准最近敌人/PK对手。</p>
+          </div>
+          <div class="tut-section">
+            <h3>⚡ 技能</h3>
+            <div class="tut-keys">
+              <div class="tut-key-group"><span class="tut-label">技能</span><span class="tut-col">护盾</span><span class="tut-col">清屏</span><span class="tut-col">投降</span></div>
+              <div class="tut-key-group"><span class="tut-label">玩家1</span><kbd>Q</kbd><kbd>E</kbd><kbd>R</kbd></div>
+              <div class="tut-key-group"><span class="tut-label">玩家2</span><kbd>.</kbd><kbd>,</kbd><kbd>右Ctrl</kbd></div>
+            </div>
+          </div>
+          <div class="tut-section">
+            <h3>⏸ 暂停</h3>
+            <p><kbd>Esc</kbd> 或 <kbd>P</kbd> 暂停游戏</p>
+          </div>
+          <div class="tut-section">
+            <h3>🤝 双人模式总览</h3>
+            <p>· <b>合作模式</b>：P1（WASD+鼠标）与 P2（方向键）同阵营对抗AI。</p>
+            <p>· <b>PK模式</b>：双方互相对抗，子弹可伤害对方，击杀对方获胜。</p>
+            <p>· 双人模式下左下角显示 P1 信息，右下角显示 P2 信息。</p>
+          </div>
+        </div>
+        <div class="screen-actions" id="tut-actions"></div>`;
+      s.querySelector('#tut-actions').appendChild(btn('返回', 'BACK', () => this.game.go('menu')));
+    }
+
+    // ---- 设置 ----
+    _buildSettings() {
+      const s = this._screen('settings');
+      s.innerHTML = `
+        <h2 class="screen-title">设置</h2>
+        <div class="settings">
+          <div class="set-row"><span>音量</span><input type="range" id="set-vol" min="0" max="1" step="0.05"></div>
+          <div class="set-row"><span>背景音乐</span><label class="switch"><input type="checkbox" id="set-music"><i></i></label></div>
+          <div class="set-row"><span>音效</span><label class="switch"><input type="checkbox" id="set-sfx"><i></i></label></div>
+          <div class="set-row"><span>自动射击</span><label class="switch"><input type="checkbox" id="set-auto"><i></i></label></div>
+        </div>
+        <div class="screen-actions" id="set-actions"></div>`;
+      const vol = s.querySelector('#set-vol'); vol.value = this.game.audio.volume;
+      vol.addEventListener('input', () => this.game.audio.setVolume(parseFloat(vol.value)));
+      const mus = s.querySelector('#set-music'); mus.checked = this.game.audio.musicOn;
+      mus.addEventListener('change', () => { this.game.audio.musicOn = mus.checked; if (!mus.checked) this.game.audio.stopMusic(); else this.game.resumeMenuMusic(); });
+      const sfx = s.querySelector('#set-sfx'); sfx.checked = this.game.audio.sfxOn;
+      sfx.addEventListener('change', () => { this.game.audio.sfxOn = sfx.checked; });
+      const aut = s.querySelector('#set-auto'); aut.checked = this.game.autoFireDefault;
+      aut.addEventListener('change', () => { this.game.autoFireDefault = aut.checked; if (this.game.player) this.game.player.autoFire = aut.checked; });
+      s.querySelector('#set-actions').appendChild(btn('返回', 'BACK', () => this.game.go(this.game.prevSettings || 'menu')));
+    }
+
+    // ---- 暂停 ----
+    _buildPause() {
+      const s = this._screen('pause');
+      s.innerHTML = `<h2 class="screen-title">已暂停</h2><div class="menu-btns" id="pause-btns"></div>`;
+      const b = s.querySelector('#pause-btns');
+      b.appendChild(btn('继续游戏', 'RESUME', () => this.game.togglePause(false)));
+      b.appendChild(btn('重新开始', 'RESTART', () => this.game.startBattle()));
+      b.appendChild(btn('返回主菜单', 'MENU', () => { this.game.endBattle(false); this.game.go('menu'); }));
+      b.appendChild(btn('设置', 'OPTIONS', () => { this.game.prevSettings = 'pause'; this.game.go('settings'); }));
+    }
+
+    // ---- 结算 ----
+    _buildResults() {
+      const s = this._screen('results');
+      s.innerHTML = `
+        <div class="res-wrap" id="res-wrap"></div>
+        <div class="screen-actions" id="res-actions"></div>`;
+    }
+    showResults(win) {
+      const wrap = this.screens.results.querySelector('#res-wrap');
+      const g = this.game;
+      const newAch = g.ach.all().filter((d) => g.ach.isUnlocked(d.id) && g._newAch.has(d.id));
+      // PK 模式特殊结算
+      if (g.gameMode === 'pk') {
+        const winner = g._pkWinner;
+        const winText = winner === 0 ? 'P1 胜利' : 'P2 胜利';
+        wrap.innerHTML = `
+          <div class="res-banner ${win ? 'win' : 'lose'}">${winText}</div>
+          <div class="res-stats">
+            <div><span>P1 得分</span><b>${g.score}</b></div>
+            <div><span>P2 得分</span><b>${g.score2}</b></div>
+            <div><span>最高分</span><b>${g.bestScore}</b></div>
+          </div>
+          ${newAch.length ? `<div class="res-ach"><h4>获得勋章</h4>${newAch.map((d) => `<div class="res-ach-item"><span class="ach-ico">${d.icon}</span><div><b>${d.name}</b><small>${g.ach.unlocked[d.id]}</small></div></div>`).join('')}</div>` : ''}`;
+      } else {
+        wrap.innerHTML = `
+          <div class="res-banner ${win ? 'win' : 'lose'}">${win ? '胜利' : '防线失守'}</div>
+          <div class="res-stats">
+            <div><span>最终得分</span><b>${g.score}</b></div>
+            <div><span>最高分</span><b>${g.bestScore}</b></div>
+            <div><span>击杀数</span><b>${g.stats.kills}</b></div>
+            <div><span>精英击杀</span><b>${g.stats.eliteKills}</b></div>
+            <div><span>最高连击</span><b>${g.stats.maxCombo}</b></div>
+            <div><span>波次</span><b>${g.wave}</b></div>
+          </div>
+          ${newAch.length ? `<div class="res-ach"><h4>获得勋章</h4>${newAch.map((d) => `<div class="res-ach-item"><span class="ach-ico">${d.icon}</span><div><b>${d.name}</b><small>${g.ach.unlocked[d.id]}</small></div></div>`).join('')}</div>` : ''}`;
+      }
+      const act = this.screens.results.querySelector('#res-actions');
+      act.innerHTML = '';
+      act.appendChild(btn('再来一局', 'RETRY', () => g.startBattle()));
+      act.appendChild(btn('返回菜单', 'MENU', () => { g.go('menu'); }));
+    }
+
+    // ---- 勋章展馆（时间轴） ----
+    _buildGallery() {
+      const s = this._screen('gallery');
+      s.innerHTML = `<h2 class="screen-title">勋章展馆 <span class="ach-count" id="ach-count"></span></h2><div class="gallery-scroll" id="gallery-scroll"></div><div class="screen-actions" id="ach-actions"></div>`;
+      s.querySelector('#ach-actions').appendChild(btn('返回', 'BACK', () => this.game.go('menu')));
+    }
+    refreshGallery() {
+      const wrap = this.screens.gallery.querySelector('#gallery-scroll');
+      wrap.innerHTML = '';
+      const a = this.game.ach;
+      const unlocked = a.unlockedSorted();  // 按时间排序的已解锁成就
+      const locked = a.lockedList();        // 未解锁成就
+
+      // 时间轴区域
+      let timelineHtml = '<div class="timeline"><div class="timeline-line"></div>';
+      if (unlocked.length === 0) {
+        timelineHtml += '<div class="timeline-empty">暂无已解锁勋章，开始游戏获取吧！</div>';
+      } else {
+        unlocked.forEach((item) => {
+          timelineHtml += `
+            <div class="timeline-node">
+              <div class="timeline-dot"></div>
+              <div class="timeline-card">
+                <div class="ach-ico">${item.def.icon}</div>
+                <div class="ach-info">
+                  <b>${item.def.name}</b>
+                  <p>${item.def.desc}</p>
+                  <small>获得于 ${item.time}</small>
+                </div>
+              </div>
+            </div>`;
+        });
+      }
+      timelineHtml += '</div>';
+
+      // 未解锁区域
+      let lockedHtml = '';
+      if (locked.length > 0) {
+        lockedHtml = '<div class="ach-locked-section"><h3 class="locked-title">未解锁</h3><div class="ach-locked-grid">';
+        locked.forEach((d) => {
+          lockedHtml += `
+            <div class="ach-card locked">
+              <div class="ach-ico lock">🔒</div>
+              <div class="ach-info"><b>${d.name}</b><p>${d.desc}</p><small>— 未解锁 —</small></div>
+            </div>`;
+        });
+        lockedHtml += '</div></div>';
+      }
+
+      wrap.innerHTML = timelineHtml + lockedHtml;
+      this.screens.gallery.querySelector('#ach-count').textContent = `${a.count()}/${a.all().length}`;
+    }
+
+    // ---- HUD ----
+    _buildHUD() {
+      const h = document.createElement('div'); h.className = 'hud'; h.id = 'hud';
+      h.innerHTML = `
+        <div class="hud-top">
+          <div class="hud-score"><span>分数</span><b id="hud-score">0</b></div>
+          <div class="hud-wave"><span>关卡</span><b id="hud-wave">1·1</b></div>
+          <div class="hud-tension"><span>紧张度</span><div class="t-bar"><i id="hud-tension"></i></div></div>
+          <div class="hud-best"><span>最高</span><b id="hud-best">0</b></div>
+        </div>
+        <div class="hud-bot" id="hud-bot">
+          <div class="hud-player-block p1" id="hud-p1">
+            <div class="hud-player-label">P1</div>
+            <div class="hud-hp"><span>护甲</span><div class="hp-bar"><i id="hud-hp"></i><small id="hud-hp-txt"></small></div></div>
+            <div class="hud-skills">
+              <div class="skill" id="sk-shield"><span class="sk-key">Q</span><span class="sk-name">护盾</span><div class="sk-cd"></div></div>
+              <div class="skill" id="sk-clear"><span class="sk-key">E</span><span class="sk-name">清屏</span><div class="sk-cd"></div></div>
+              <div class="skill" id="sk-surrender"><span class="sk-key">R</span><span class="sk-name">投降</span><div class="sk-cd"></div></div>
+            </div>
+          </div>
+          <div class="hud-player-block p2" id="hud-p2">
+            <div class="hud-player-label">P2</div>
+            <div class="hud-hp"><span>护甲</span><div class="hp-bar"><i id="hud-hp2"></i><small id="hud-hp2-txt"></small></div></div>
+            <div class="hud-skills">
+              <div class="skill" id="sk-shield2"><span class="sk-key">.</span><span class="sk-name">护盾</span><div class="sk-cd"></div></div>
+              <div class="skill" id="sk-clear2"><span class="sk-key">,</span><span class="sk-name">清屏</span><div class="sk-cd"></div></div>
+              <div class="skill" id="sk-surrender2"><span class="sk-key">右Ctrl</span><span class="sk-name">投降</span><div class="sk-cd"></div></div>
+            </div>
+          </div>
+          <div class="hud-combo" id="hud-combo"></div>
+        </div>`;
+      this.root.appendChild(h); this.hudEl = h;
+      // P1 技能点击
+      h.querySelector('#sk-shield').addEventListener('click', () => this.game.player && this.game.player.skillShield());
+      h.querySelector('#sk-clear').addEventListener('click', () => this.game.player && this.game.player.skillClear());
+      h.querySelector('#sk-surrender').addEventListener('click', () => this.game.trySurrender());
+      // P2 技能点击
+      h.querySelector('#sk-shield2').addEventListener('click', () => this.game.player2 && this.game.player2.skillShield());
+      h.querySelector('#sk-clear2').addEventListener('click', () => this.game.player2 && this.game.player2.skillClear());
+      h.querySelector('#sk-surrender2').addEventListener('click', () => this.game._p2Surrender && this.game._p2Surrender());
+    }
+    updateHUD() {
+      const g = this.game, p = g.player; if (!p) return;
+      const $ = (id) => this.hudEl.querySelector(id);
+      const isDual = g.gameMode === 'coop' || g.gameMode === 'pk';
+
+      // 顶部信息
+      if (g.gameMode === 'pk') {
+        $('#hud-score').textContent = 'P1:' + g.score + '  P2:' + g.score2;
+        $('#hud-wave').textContent = 'PK';
+        $('#hud-tension').style.width = '0%';
+      } else {
+        $('#hud-score').textContent = g.score;
+        $('#hud-wave').textContent = '第' + g.level + '关 · ' + (g.wave + 1) + '波';
+        $('#hud-tension').style.width = (g.tension * 100).toFixed(0) + '%';
+      }
+      $('#hud-best').textContent = g.bestScore;
+
+      // P1 信息
+      this._updatePlayerHUD(p, '#hud-hp', '#hud-hp-txt', '#sk-shield', '#sk-clear');
+
+      // P2 信息（双人模式）
+      const p2Block = $('#hud-p2');
+      if (isDual && g.player2) {
+        p2Block.style.display = 'flex';
+        this._updatePlayerHUD(g.player2, '#hud-hp2', '#hud-hp2-txt', '#sk-shield2', '#sk-clear2');
+      } else {
+        p2Block.style.display = 'none';
+      }
+
+      // 连击
+      const cb = $('#hud-combo'); if (g.combo > 1) { cb.textContent = g.combo + ' COMBO'; cb.style.opacity = 1; } else cb.style.opacity = 0;
+    }
+    // 更新单个玩家的 HUD 信息
+    _updatePlayerHUD(p, hpSel, hpTxtSel, shieldSel, clearSel) {
+      const $ = (id) => this.hudEl.querySelector(id);
+      const hpR = Math.max(0, p.hp / p.maxHp);
+      $(hpSel).style.width = (hpR * 100) + '%';
+      $(hpTxtSel).textContent = Math.ceil(p.hp) + ' / ' + p.maxHp;
+      this._skillCD(shieldSel, p.skShieldCd, p.skShieldMax, p.shield > 0 ? '激活' : '');
+      this._skillCD(clearSel, p.skClearCd, p.skClearMax);
+    }
+    _skillCD(sel, cd, max, active) {
+      const el = this.hudEl.querySelector(sel);
+      if (!el) return;
+      const fill = el.querySelector('.sk-cd');
+      const r = cd > 0 ? cd / max : 0;
+      fill.style.height = (r * 100) + '%';
+      el.classList.toggle('cooling', cd > 0);
+      el.classList.toggle('active', !!active);
+    }
+
+    // ---- 提示条 / 成就弹窗 / 确认框 ----
+    _buildToasts() {
+      const t = document.createElement('div'); t.className = 'toast'; t.id = 'toast'; this.root.appendChild(t);
+      const at = document.createElement('div'); at.className = 'ach-toast'; at.id = 'ach-toast'; this.root.appendChild(at);
+    }
+    toast(msg) {
+      const t = this.hudEl ? this.root.querySelector('#toast') : null;
+      if (!t) return;
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(this._toastT);
+      this._toastT = setTimeout(() => t.classList.remove('show'), 1600);
+    }
+    showAchToast(item) {
+      const t = this.root.querySelector('#ach-toast');
+      t.innerHTML = `<div class="ach-toast-ico">${item.def.icon}</div><div><b>解锁勋章</b><p>${item.def.name}</p><small>${item.time}</small></div>`;
+      t.classList.add('show');
+      clearTimeout(this._achT);
+      this._achT = setTimeout(() => t.classList.remove('show'), 3200);
+    }
+
+    _buildConfirm() {
+      const c = document.createElement('div'); c.className = 'confirm'; c.id = 'confirm';
+      c.innerHTML = `<div class="confirm-box"><h3 id="cf-title"></h3><div class="confirm-btns" id="cf-btns"></div></div>`;
+      this.root.appendChild(c);
+    }
+    showConfirm(title, yesLabel, noLabel, onYes, onNo) {
+      const c = this.root.querySelector('#confirm');
+      c.querySelector('#cf-title').textContent = title;
+      const box = c.querySelector('#cf-btns'); box.innerHTML = '';
+      box.appendChild(btn(yesLabel || '确认', null, () => { c.classList.remove('show'); onYes && onYes(); }));
+      box.appendChild(btn(noLabel || '取消', null, () => { c.classList.remove('show'); onNo && onNo(); }));
+      c.classList.add('show');
+    }
+
+    // ---- Boss 出场 CG ----
+    _buildBossCG() {
+      const c = document.createElement('div'); c.className = 'boss-cg'; c.id = 'boss-cg';
+      c.innerHTML = `
+        <div class="boss-cg-flash"></div>
+        <div class="boss-cg-lines"></div>
+        <div class="boss-cg-text">
+          <p class="bcg-warn">⚠ WARNING ⚠</p>
+          <h2 class="bcg-name"></h2>
+          <p class="bcg-title"></p>
+        </div>`;
+      this.root.appendChild(c);
+    }
+    showBossCG(def, onDone) {
+      const c = this.root.querySelector('#boss-cg');
+      c.querySelector('.bcg-name').textContent = def.name;
+      c.querySelector('.bcg-title').textContent = def.title;
+      c.classList.add('show');
+      TG.audio.sfxBossRoar();
+      clearTimeout(this._bcgT);
+      this._bcgT = setTimeout(() => { c.classList.remove('show'); onDone && onDone(); }, 2600);
+    }
+
+    // ---- 屏幕切换（带过渡） ----
+    show(name) {
+      Object.values(this.screens).forEach((s) => s.classList.remove('show'));
+      if (this.screens[name]) this.screens[name].classList.add('show');
+      const isBattle = name === 'battle';
+      this.hudEl.classList.toggle('show', isBattle);
+      if (name === 'gallery') this.refreshGallery();
+      if (name === 'menu') { this._buildMenuFoot(); this._startMeteors(); }
+      else this._stopMeteors();
+      if (name === 'char') this._refreshChars();
+      if (name === 'mode') this._refreshModes();
+    }
+    _buildMenuFoot() {
+      const f = this.screens.menu.querySelector('#menu-foot');
+      if (f) f.textContent = `最高分：${this.game.bestScore}  ·  勋章：${this.game.ach.count()}/${this.game.ach.all().length}`;
+    }
+
+    // ---- 流星动画管理 ----
+    _startMeteors() {
+      const layer = this.screens.menu.querySelector('#meteor-layer');
+      if (!layer) return;
+      this._stopMeteors(); // 先清理旧的定时器
+      const spawn = () => {
+        if (this.game.state !== 'menu') return; // 仅主菜单生成
+        if (layer.children.length < 4) {        // 限制同屏流星数量
+          const m = document.createElement('div');
+          m.className = 'meteor';
+          const W = window.innerWidth, H = window.innerHeight;
+          // 随机起始位置：从屏幕右上区域进入
+          m.style.left = (W * 0.35 + Math.random() * W * 0.65) + 'px';
+          m.style.top = (-30 - Math.random() * H * 0.15) + 'px';
+          // 随机角度：向左下方飞（120°~160°）
+          const rot = 120 + Math.random() * 40;
+          // 飞行距离：足够飞出屏幕
+          const dist = Math.max(W, H) * 1.6;
+          m.style.setProperty('--rot', rot + 'deg');
+          m.style.setProperty('--dist', dist + 'px');
+          // 随机时长（0.7s~1.5s），随机大小
+          const dur = 700 + Math.random() * 800;
+          const scale = 0.7 + Math.random() * 0.8;
+          m.style.width = (160 * scale) + 'px';
+          m.style.animation = `meteorStreak ${dur}ms linear forwards`;
+          layer.appendChild(m);
+          m.addEventListener('animationend', () => m.remove());
+        }
+        // 随机间隔生成下一颗（1.2s~4s）
+        this._meteorTimer = setTimeout(spawn, 1200 + Math.random() * 2800);
+      };
+      // 首颗延迟 300ms
+      this._meteorTimer = setTimeout(spawn, 300);
+    }
+    _stopMeteors() {
+      if (this._meteorTimer) { clearTimeout(this._meteorTimer); this._meteorTimer = null; }
+      const layer = this.screens.menu && this.screens.menu.querySelector('#meteor-layer');
+      if (layer) layer.innerHTML = '';
+    }
+  }
+
+  TG.UI = UI;
+})(window.TG = window.TG || {});
+
+
+/* ===== game.js ===== */
+/* =====================================================================
+ * game.js — 游戏主类
+ *   - 状态机：loading/menu/char/level/settings/battle/pause/results/gallery
+ *   - 固定步长游戏循环（固定 1/60s 逻辑 + 可变渲染）
+ *   - 波次系统 / 紧张度 / 屏幕震动 / 红屏闪 / 慢动作
+ *   - 碰撞检测（圆-圆，分阵营）
+ *   - BGM 阶段切换 / 成就轮询 / CG 编排
+ * ===================================================================== */
+(function (TG) {
+  'use strict';
+
+  const STEP = 1 / 60;          // 固定逻辑步长
+  const STAR_N = 160;           // 背景星数
+
+  class Game {
+    constructor() {
+      this.canvas = document.getElementById('game');
+      this.ctx = this.canvas.getContext('2d');
+      // 先初始化 UI 依赖的数据，再构造 UI（_build 会读取这些字段）
+      this.audio = TG.audio;
+      this.ach = new TG.Achievement();
+      this.bestScore = TG.store.get('tk_best', 0);
+      this.selectedChar = 'guardian';
+      this.selectedLevel = 'normal';
+      this.levelGrow = 1.0;
+      this.autoFireDefault = true;
+      this.gameMode = 'single';   // 'single' / 'coop' / 'pk'
+      this.player2 = null;
+      this.score2 = 0;            // P2 分数（PK模式）
+      this.state = 'loading';
+      this.prevSettings = 'menu';
+
+      this.ui = new TG.UI(this);
+
+      this.input = new Set();
+      this.mouse = { x: 0, y: 0, down: false, active: false };
+      this._touch = null;
+
+      this._bindInput();
+      this._resize();
+      window.addEventListener('resize', () => this._resize());
+
+      this.stars = this._makeStars();
+      this.shakeT = 0; this.shakeAmp = 0; this.shakeDur = 0;
+      this.redFlashV = 0;
+      this.timeScale = 1;
+      this._newAch = new Set();
+      this._acc = 0; this._last = performance.now();
+      this._loop = this._loop.bind(this);
+      this._initBattleState();
+      this.ui.show('loading');   // 初始显示加载界面
+      requestAnimationFrame(this._loop);
+    }
+
+    _initBattleState() {
+      this.player = null;
+      this.player2 = null;
+      this.boss = null;
+      this.score = 0;
+      this.score2 = 0;
+      this.wave = 0;
+      this.combo = 0; this.comboT = 0;
+      this.tension = 0;
+      this.spawnT = 0;
+      this.waveT = 0;
+      this.bossOut = false;
+      this.level = 1;             // 当前关卡（1 或 2）
+      this.maxLevel = 2;          // 最大关卡数
+      this.cg = null;            // 当前 CG 状态
+      this.cgT = 0;
+      this._pkWinner = null;     // PK模式胜者
+      this.stats = { kills: 0, eliteKills: 0, maxCombo: 0, tookDamage: false, shieldUsed: 0, clearUsed: 0, powerups: 0 };
+      TG.bullets.clear(); TG.enemies.clear(); TG.powerups.clear(); TG.particles.clear(); TG.floatTexts.clear();
+    }
+
+    _makeStars() {
+      const a = [];
+      for (let i = 0; i < STAR_N; i++) {
+        a.push({ x: Math.random(), y: Math.random(), z: Math.random() * 0.8 + 0.2, s: Math.random() * 1.6 + 0.3 });
+      }
+      return a;
+    }
+
+    // ============== 输入 ==============
+    _bindInput() {
+      const set = this.input;
+      addEventListener('keydown', (e) => {
+        // 防止空格/方向键滚动页面
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Slash'].includes(e.code)) e.preventDefault();
+        set.add(e.code);
+        // 技能快捷键
+        if (this.state === 'battle' && this.player) {
+          // 玩家1技能
+          if (e.code === 'KeyQ') this.player.skillShield();
+          if (e.code === 'KeyE') this.player.skillClear();
+          if (e.code === 'KeyR') this.trySurrender();
+          // 玩家2技能（双人模式）
+          if (this.player2 && this.player2.alive) {
+            if (e.code === 'Period') this.player2.skillShield();        // 句号(.) 护盾
+            if (e.code === 'Comma') this.player2.skillClear();         // 逗号(,) 清屏
+            if (e.code === 'ControlRight') this._p2Surrender();        // 右Ctrl 投降
+            if (e.code === 'Numpad1' || (e.code === 'Slash' && false)) { /* reserved */ }
+          }
+          // 通用
+          if (e.code === 'KeyP' || e.code === 'Escape') this.togglePause(true);
+          if (e.code === 'KeyF') {
+            this.player.autoFire = !this.player.autoFire;
+            this.toast('P1 自动射击：' + (this.player.autoFire ? '开' : '关'));
+            if (this.player2) { this.player2.autoFire = this.player.autoFire; }
+          }
+        } else {
+          if (e.code === 'Escape' && this.state !== 'loading' && this.state !== 'menu') this.go('menu');
+        }
+      });
+      addEventListener('keyup', (e) => set.delete(e.code));
+
+      const cv = this.canvas;
+      cv.addEventListener('mousemove', (e) => {
+        const r = cv.getBoundingClientRect();
+        this.mouse.x = (e.clientX - r.left) * (this.W / r.width);
+        this.mouse.y = (e.clientY - r.top) * (this.H / r.height);
+        this.mouse.active = true;
+      });
+      cv.addEventListener('mousedown', () => { this.mouse.down = true; this.audio.resume(); });
+      addEventListener('mouseup', () => this.mouse.down = false);
+      cv.addEventListener('mouseleave', () => { this.mouse.active = false; this.mouse.down = false; });
+
+      // 触摸：左半屏拖拽移动，右半屏瞄准射击
+      cv.addEventListener('touchstart', (e) => { this._onTouch(e, 'start'); e.preventDefault(); }, { passive: false });
+      cv.addEventListener('touchmove', (e) => { this._onTouch(e, 'move'); e.preventDefault(); }, { passive: false });
+      cv.addEventListener('touchend', (e) => { this._onTouch(e, 'end'); e.preventDefault(); }, { passive: false });
+    }
+    _onTouch(e, phase) {
+      const r = this.canvas.getBoundingClientRect();
+      const t = e.changedTouches[0];
+      const x = (t.clientX - r.left) * (this.W / r.width);
+      const y = (t.clientY - r.top) * (this.H / r.height);
+      if (phase === 'start') { this._touch = { x, y, side: x < this.W / 2 ? 'move' : 'aim' }; this.audio.resume(); }
+      else if (phase === 'move' && this._touch) { this._touch.x = x; this._touch.y = y; }
+      else if (phase === 'end') { this._touch = null; this.mouse.down = false; }
+      if (this._touch && this._touch.side === 'aim') { this.mouse.x = x; this.mouse.y = y; this.mouse.active = true; this.mouse.down = true; }
+    }
+
+    _resize() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      this.W = window.innerWidth; this.H = window.innerHeight;
+      this.canvas.width = this.W * dpr; this.canvas.height = this.H * dpr;
+      this.canvas.style.width = this.W + 'px'; this.canvas.style.height = this.H + 'px';
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (this.player) { this.player.W = this.W; this.player.H = this.H; }
+      if (this.player2) { this.player2.W = this.W; this.player2.H = this.H; }
+    }
+
+    // ============== 状态切换 ==============
+    go(state) {
+      if (state === 'battle') return; // battle 由 startBattle 处理
+      this.state = state;
+      this.ui.show(state);
+      if (state === 'menu') this.resumeMenuMusic();
+      else if (state === 'gallery') this.ui.refreshGallery();
+      else if (state === 'settings') { /* 保留 prev */ }
+    }
+    resumeMenuMusic() { if (this.audio.musicOn) this.audio.playMusic('menu'); }
+
+    // 投降：二次确认
+    trySurrender() {
+      if (this.state !== 'battle') return;
+      this.togglePause(true, true); // 静默暂停（不切屏）
+      this.ui.showConfirm('P1 确认投降？本局立即结束并结算。', '确认投降', '继续战斗',
+        () => { this.ach.check('surrender', 1); this._finishBattle(false, true); },
+        () => { this.togglePause(false); });
+    }
+    // P2 投降
+    _p2Surrender() {
+      if (this.state !== 'battle') return;
+      this.togglePause(true, true);
+      this.ui.showConfirm('P2 确认投降？本局立即结束并结算。', '确认投降', '继续战斗',
+        () => { this.ach.check('surrender', 1); this._finishBattle(false, true); },
+        () => { this.togglePause(false); });
+    }
+
+    togglePause(p, silent) {
+      if (this.state !== 'battle' && !silent) return;
+      if (p) { this._wasBattle = true; this.state = 'pause'; if (!silent) this.ui.show('pause'); }
+      else { this.state = 'battle'; this.ui.show('battle'); }
+    }
+
+    startBattle() {
+      this.audio.resume();
+      this._initBattleState();
+      // 根据游戏模式创建玩家
+      this.player = new TG.Player(this.selectedChar, this, 0);
+      this.player.autoFire = this.autoFireDefault;
+      if (this.gameMode === 'coop' || this.gameMode === 'pk') {
+        this.player2 = new TG.Player(this.selectedChar, this, 1);
+        this.player2.autoFire = this.autoFireDefault;
+        // P1 已有 player2 引用时重新设置位置
+        this.player.cx = this.W * 0.7; this.player.cy = this.H * 0.78;
+      }
+      this.state = 'battle';
+      this.ui.show('battle');
+      this.audio.playMusic('calm');
+      if (this.gameMode === 'single') {
+        this.toast('战线开启 · ' + this.player.char.name);
+      } else if (this.gameMode === 'coop') {
+        this.toast('双人合作 · ' + this.player.char.name);
+      } else if (this.gameMode === 'pk') {
+        this.toast('双人对决 · ' + this.player.char.name);
+      }
+      this.ach.check('battle_start', 1);
+    }
+
+    endBattle(toMenu) {
+      this._initBattleState();
+      if (toMenu === false) {} // 保留对象清理
+      this.audio.stopMusic();
+    }
+
+    // ============== 战斗事件回调 ==============
+    onPlayerDeath(pidx, killerIdx) {
+      if (this.cg) return;
+      const dead = pidx === 1 ? this.player2 : this.player;
+      if (!dead) return;
+      TG.particles.explode(dead.cx, dead.cy, dead.color, 2.2);
+      TG.audio.sfxBigExplosion();
+      this.shake(16, 0.8);
+
+      // PK 模式：一方死亡即结束，另一方获胜
+      if (this.gameMode === 'pk') {
+        this._pkWinner = killerIdx !== undefined ? killerIdx : (pidx === 0 ? 1 : 0);
+        this.cg = 'victory'; this.cgT = 0; // 使用胜利 CG（有人赢了）
+        this.audio.stopMusic(); this.audio.playMusic('victory');
+        return;
+      }
+      // Coop 模式：一方死亡后另一方可继续，两方都死才结束
+      if (this.gameMode === 'coop') {
+        if (this.player.alive === false && (!this.player2 || this.player2.alive === false)) {
+          this.cg = 'defeat'; this.cgT = 0;
+          this.audio.stopMusic(); this.audio.playMusic('defeat');
+        } else {
+          this.toast(pidx === 0 ? 'P1 阵亡！P2 继续战斗！' : 'P2 阵亡！P1 继续战斗！');
+        }
+        return;
+      }
+      // 单人模式：直接结束
+      this.cg = 'defeat'; this.cgT = 0;
+      this.audio.stopMusic(); this.audio.playMusic('defeat');
+    }
+    onBossDeath() {
+      this.shake(20, 1.2);
+      TG.audio.sfxBigExplosion();
+      this.ach.check('boss', 1);
+      // 逆血反杀：Boss 死亡时任意存活玩家血量低于 10%
+      const alivePlayers = [this.player, this.player2].filter((p) => p && p.alive !== false && p.hp > 0);
+      if (alivePlayers.some((p) => p.hp / p.maxHp < 0.1)) {
+        this.ach.check('boss_lowhp', 1);
+      }
+      // 连环爆炸
+      for (let i = 0; i < 6; i++) {
+        const x = this.boss.cx + TG.rand(-this.boss.r, this.boss.r);
+        const y = this.boss.cy + TG.rand(-this.boss.r, this.boss.r);
+        setTimeout(() => { TG.particles.explode(x, y, this.boss.def.color, 1.6); TG.audio.sfxExplosion(); }, i * 180);
+      }
+      // PK 模式无关卡概念，直接胜利
+      if (this.gameMode === 'pk') {
+        this.cg = 'victory'; this.cgT = 0;
+        this.audio.stopMusic(); this.audio.playMusic('victory');
+        return;
+      }
+      // 第1关通关 → 过渡到第2关
+      if (this.level < this.maxLevel) {
+        this.cg = 'level-transition'; this.cgT = 0;
+        this.timeScale = 0.35;
+        this.audio.stopMusic(); this.audio.playMusic('victory');
+        return;
+      }
+      // 第2关通关 → 正式胜利
+      this.cg = 'victory'; this.cgT = 0;
+      this.timeScale = 0.35;
+      this.audio.stopMusic(); this.audio.playMusic('victory');
+    }
+    onBossPhase(i) {
+      this.toast('Boss 进入第 ' + (i + 1) + ' 阶段！');
+      this.shake(10, 0.4);
+      TG.audio.sfxWarning();
+    }
+
+    // ============== 关卡过渡 ==============
+    _startNextLevel() {
+      this.level++;
+      // 清场但保留玩家
+      TG.bullets.clear(); TG.enemies.clear(); TG.powerups.clear(); TG.particles.clear();
+      this.boss = null; this.bossOut = false;
+      this.wave = 0; this.waveT = 0; this.spawnT = 2;
+      this.tension = 0; this.combo = 0; this.comboT = 0;
+      this.timeScale = 1;
+      // 玩家恢复部分血量 + 短暂无敌
+      if (this.player && this.player.alive !== false) {
+        this.player.heal(this.player.maxHp * 0.3);
+        this.player.invuln = 2.0;
+      }
+      if (this.player2 && this.player2.alive !== false) {
+        this.player2.heal(this.player2.maxHp * 0.3);
+        this.player2.invuln = 2.0;
+      }
+      // 重置位置
+      if (this.player) { this.player.cx = this.W / 2; this.player.cy = this.H * 0.78; }
+      this.audio.playMusic('calm');
+      this.toast('第 ' + this.level + ' 关 · 深渊反扑！');
+      this.shake(6, 0.3);
+    }
+    onClearScreen() {
+      // 清除所有敌人子弹 + 对全屏敌人造成伤害
+      let hit = 0;
+      TG.bullets.forEach((b) => { if (b.team === 'enemy') { TG.particles.explode(b.x, b.y, b.color, 0.4); b.alive = false; hit++; } });
+      TG.enemies.forEach((e) => { if (e.takeDamage(30)) this._onKill(e); });
+      // 清屏对 Boss 伤害受限：不超过 Boss 最大血量的 8%（最低 20），防止一击秒杀
+      if (this.boss && this.boss.alive) {
+        const cap = Math.max(20, Math.round(this.boss.maxHp * 0.08));
+        if (this.boss.takeDamage(cap)) this.onBossDeath(); // 若清屏击杀 Boss，走完整死亡流程
+      }
+      this.toast('全屏清场！');
+    }
+
+    // PK模式下清屏：只清敌人子弹，不影响另一方玩家
+    onClearScreenPK() {
+      TG.bullets.forEach((b) => { if (b.team === 'enemy') { TG.particles.explode(b.x, b.y, b.color, 0.4); b.alive = false; } });
+      // PK模式下不刷敌人，所以只清子弹即可
+      this.toast('全屏清场！');
+    }
+
+    // ============== 击杀处理 ==============
+    _onKill(e, killerIdx) {
+      this.combo++; this.comboT = 3;
+      this.stats.kills++;
+      if (this.stats.kills === 1) this.ach.check('first_kill', 1);
+      if (e.type === 'elite') this.stats.eliteKills++;
+      this.ach.check('kills', this.stats.kills);
+      this.ach.check('elite', this.stats.eliteKills);
+      if (this.combo > this.stats.maxCombo) this.stats.maxCombo = this.combo;
+      this.ach.check('combo', this.combo);
+      // coop 模式共享分数；PK 模式无敌人击杀
+      const scorer = this.player;
+      const gain = Math.round(e.score * (1 + this.combo * 0.05) * scorer.scoreMul);
+      this.score += gain;
+      this.ach.check('score', this.score);
+      TG.particles.explode(e.cx, e.cy, e.color, 0.9);
+      TG.audio.sfxExplosion();
+      this.shake(4, 0.18);
+      // 道具掉落
+      if (Math.random() < 0.22) TG.powerups.spawn(e.cx, e.cy);
+      // 连击提示
+      if (this.combo > 0 && this.combo % 10 === 0) this.toast(this.combo + ' 连击！');
+    }
+
+    // PK 模式下玩家命中另一方得分
+    _onPKHit(attackerIdx, dmg) {
+      const gain = Math.round(dmg * 10);
+      if (attackerIdx === 0) this.score += gain;
+      else this.score2 += gain;
+      this.ach.check('score', this.score + this.score2);
+    }
+
+    // ============== 视觉效果 ==============
+    shake(amp, dur) { if (amp > this.shakeAmp) this.shakeAmp = amp; this.shakeDur = Math.max(this.shakeDur, dur); this.shakeT = this.shakeDur; }
+    redFlash(v) { this.redFlashV = Math.max(this.redFlashV, v); }
+
+    toast(msg) { this.ui.toast(msg); }
+
+    nearestEnemy(x, y, fromPidx) {
+      // PK 模式：返回对方玩家作为目标
+      if (this.gameMode === 'pk') {
+        const target = fromPidx === 0 ? this.player2 : this.player;
+        if (target && target.alive !== false) return target;
+        return null;
+      }
+      let best = null, bd = Infinity;
+      TG.enemies.forEach((e) => { const d = TG.dist2(x, y, e.cx, e.cy); if (d < bd) { bd = d; best = e; } });
+      if (this.boss && this.boss.alive && !this.boss.entering) {
+        const d = TG.dist2(x, y, this.boss.cx, this.boss.cy);
+        if (d < bd) best = this.boss;
+      }
+      return best;
+    }
+
+    // ============== 游戏循环 ==============
+    _loop(ts) {
+      let dt = (ts - this._last) / 1000;
+      this._last = ts;
+      if (dt > 0.25) dt = 0.25; // 防止切后台后大跳
+
+      // CG 慢动作等影响逻辑速度
+      this._acc += dt * this.timeScale;
+      let steps = 0;
+      while (this._acc >= STEP && steps < 5) {
+        this.update(STEP);
+        this._acc -= STEP;
+        steps++;
+      }
+      // 视觉效果衰减用真实时间
+      this._updateFx(dt);
+      this.render();
+      // 成就弹窗轮询
+      if (this.ach.hasPop()) {
+        const it = this.ach.pop(); this._newAch.add(it.def.id); this.ui.showAchToast(it);
+      }
+      requestAnimationFrame(this._loop);
+    }
+
+    _updateFx(dt) {
+      if (this.shakeT > 0) { this.shakeT -= dt; this.shakeDur -= dt; if (this.shakeDur <= 0) this.shakeAmp *= 0.9; }
+      if (this.redFlashV > 0) this.redFlashV = Math.max(0, this.redFlashV - dt * 1.5);
+      if (this.timeScale < 1 && this.cg !== 'victory' && this.cg !== 'defeat' && this.cg !== 'level-transition') this.timeScale = Math.min(1, this.timeScale + dt * 1.2);
+      else if (this.cg === 'victory' || this.cg === 'defeat' || this.cg === 'level-transition') this.timeScale = Math.min(1, this.timeScale + dt * 0.5);
+    }
+
+    update(dt) {
+      // 背景星滚动（始终）
+      this._starSpeed = (this.state === 'battle') ? 1 : 0.4;
+
+      if (this.state === 'battle') this._updateBattle(dt);
+      else if (this.state === 'loading') this._updateLoading(dt);
+      else if (this.state === 'pause') { /* 暂停不更新逻辑 */ }
+
+      // CG 推进
+      if (this.cg) {
+        this.cgT += dt;
+        if (this.cg === 'victory' && this.cgT > 2.6) { this._finishBattle(true, false); this.cg = null; }
+        else if (this.cg === 'defeat' && this.cgT > 2.2) { this._finishBattle(false, false); this.cg = null; }
+        else if (this.cg === 'level-transition' && this.cgT > 3.0) { this._startNextLevel(); this.cg = null; }
+      }
+    }
+
+    _updateLoading(dt) {
+      this._loadT = (this._loadT || 0) + dt;
+      const tips = ['初始化武器系统…', '校准护盾矩阵…', '链接星河网络…', '装载机甲核心…', '准备完毕'];
+      const fill = document.getElementById('load-fill');
+      const tip = document.getElementById('load-tip');
+      if (fill) fill.style.width = Math.min(100, this._loadT * 40) + '%';
+      if (tip && this._loadT < 4) tip.textContent = tips[Math.min(tips.length - 1, Math.floor(this._loadT))];
+      if (this._loadT >= 4 && this.state === 'loading') { this.go('menu'); }
+    }
+
+    _updateBattle(dt) {
+      const p = this.player; if (!p) return;
+
+      // PK 模式下不使用波次/紧张度系统
+      if (this.gameMode !== 'pk') {
+        // 紧张度：基于分数与波次，第2关额外提升
+        this.tension = TG.clamp((this.score / 18000) * this.levelGrow + this.wave * 0.04 + (this.level - 1) * 0.12, 0, 1);
+        // BGM 紧张层 & 切换
+        if (this.boss && this.boss.alive) {
+          if (this.audio.curTrack !== 'boss') this.audio.playMusic('boss');
+        } else if (this.tension > 0.55) {
+          if (this.audio.curTrack !== 'tense') this.audio.playMusic('tense');
+          this.audio.setTenseLayer(true);
+        } else {
+          if (this.audio.curTrack === 'tense' && this.tension < 0.4) this.audio.playMusic('calm');
+          this.audio.setTenseLayer(false);
+        }
+      }
+
+      // 玩家1（战败 CG 期间停止操控）
+      if (this.cg !== 'defeat' && p.alive !== false) p.control(this.input, dt, this.mouse);
+      p.update(dt);
+      // 玩家2
+      if (this.player2) {
+        if (this.cg !== 'defeat' && this.player2.alive !== false) this.player2.control(this.input, dt, this.mouse);
+        this.player2.update(dt);
+      }
+      // 触摸移动（仅 P1）
+      if (this._touch && this._touch.side === 'move' && p) {
+        const a = Math.atan2(this._touch.y - p.cy, this._touch.x - p.cx);
+        const d = TG.dist(p.cx, p.cy, this._touch.x, this._touch.y);
+        if (d > 8) { const sp = p.speed * p.spdUp * dt; p.cx = TG.clamp(p.cx + Math.cos(a) * sp, p.r, this.W - p.r); p.cy = TG.clamp(p.cy + Math.sin(a) * sp, p.r, this.H - p.r); }
+      }
+
+      // 子弹/敌人/道具/粒子
+      TG.bullets.update(dt, this);
+      if (this.gameMode !== 'pk') {
+        TG.enemies.update(dt, this);
+        TG.powerups.update(dt, this);
+      }
+      TG.particles.update(dt);
+      TG.floatTexts.update(dt);
+
+      // Boss
+      if (this.boss && this.boss.alive) this.boss.update(dt, this);
+
+      // 波次/刷怪（PK 模式跳过）
+      if (this.gameMode !== 'pk') this._updateWaves(dt);
+
+      // 连击计时
+      if (this.comboT > 0) { this.comboT -= dt; if (this.comboT <= 0) this.combo = 0; }
+
+      // 碰撞
+      this._collide();
+
+      // HUD
+      this.ui.updateHUD();
+    }
+
+    _updateWaves(dt) {
+      this.waveT += dt;
+      this.spawnT -= dt;
+
+      // Boss 触发：第 5 波或分数阈值
+      if (!this.bossOut && (this.wave >= 5 || this.score >= 9000)) {
+        this.bossOut = true;
+        this._spawnBoss();
+        return;
+      }
+      if (this.bossOut && (!this.boss || !this.boss.alive)) return; // Boss 阶段不刷普通怪（除召唤）
+
+      // 普通刷怪节奏（第2关敌人数量 +25%）
+      if (this.spawnT <= 0) {
+        const n = Math.floor((2 + this.tension * 5) * (1 + (this.level - 1) * 0.25));
+        for (let i = 0; i < n; i++) {
+          const r = Math.random();
+          let type = 'grunt';
+          if (this.tension > 0.3 && r < 0.18) type = 'elite';
+          else if (r < 0.4) type = 'diver';
+          else if (this.tension > 0.2 && r < 0.55) type = 'sniper';
+          const x = TG.rand(60, this.W - 60);
+          TG.enemies.spawn(type, x, -30, this.tension, this, this.level);
+        }
+        this.spawnT = TG.lerp(2.6, 0.9, this.tension);
+      }
+
+      // 波次推进（每 18s 一波）
+      if (this.waveT >= 18) {
+        this.waveT = 0; this.wave++;
+        this.toast('第 ' + this.level + ' 关 · 第 ' + (this.wave + 1) + ' 波来袭！');
+        if (!this.stats.tookDamageThisWave) this.ach.check('nohurt', 0);
+        this.stats.tookDamageThisWave = false;
+      }
+    }
+
+    _spawnBoss() {
+      // 难度缩放：easy=0.6, normal=1.0, hard=1.5, inferno=2.0
+      // 第2关 Boss scale 额外 +0.3
+      const bossScale = TG.clamp(this.levelGrow * (1 + (this.level - 1) * 0.3), 0.6, 3.0);
+      this.boss = new TG.Boss(this, bossScale);
+      this.audio.stopMusic();
+      this.ui.showBossCG(this.boss.def, () => { this.audio.playMusic('boss'); });
+      this.shake(8, 0.6);
+    }
+
+    // ============== 碰撞 ==============
+    _collide() {
+      const p = this.player;
+      const players = [p];
+      if (this.player2) players.push(this.player2);
+
+      // 玩家子弹 vs 敌人 / Boss（coop/single 模式）
+      if (this.gameMode !== 'pk') {
+        TG.bullets.forEach((b) => {
+          if (b.team !== 'player') return;
+          TG.enemies.forEach((e) => {
+            if (!b.alive || !e.alive) return;
+            if (TG.dist2(b.x, b.y, e.cx, e.cy) <= (b.r + e.r) * (b.r + e.r)) {
+              if (e.takeDamage(b.dmg)) this._onKill(e, b.owner);
+              if (b.pierce > 0) b.pierce--; else b.alive = false;
+            }
+          });
+          // vs Boss
+          if (this.boss && this.boss.alive && b.alive) {
+            const bs = this.boss.hitCircle();
+            if (TG.dist2(b.x, b.y, bs.x, bs.y) <= (b.r + bs.r) * (b.r + bs.r)) {
+              if (this.boss.takeDamage(b.dmg)) this.onBossDeath();
+              if (b.pierce > 0) b.pierce--; else b.alive = false;
+            }
+          }
+        });
+
+        // 敌人子弹 vs 玩家（所有玩家）
+        TG.bullets.forEach((b) => {
+          if (b.team !== 'enemy' || !b.alive) return;
+          players.forEach((pl) => {
+            if (!pl || pl.alive === false) return;
+            if (TG.dist2(b.x, b.y, pl.cx, pl.cy) <= (b.r + pl.r - 2) * (b.r + pl.r - 2)) {
+              if (pl.shield > 0 || pl.invuln > 0) { b.alive = false; TG.particles.hit(b.x, b.y, Math.random() * TG.TAU, pl.accent); }
+              else if (pl.takeDamage(b.dmg)) { b.alive = false; this.stats.tookDamageThisWave = true; }
+            }
+          });
+        });
+
+        // 敌人撞击玩家
+        TG.enemies.forEach((e) => {
+          if (!e.alive) return;
+          players.forEach((pl) => {
+            if (!pl || pl.alive === false) return;
+            if (TG.dist2(e.cx, e.cy, pl.cx, pl.cy) <= (e.r + pl.r - 2) * (e.r + pl.r - 2)) {
+              if (pl.takeDamage(e.dmg)) { this.stats.tookDamageThisWave = true; if (e.takeDamage(999)) this._onKill(e); }
+            }
+          });
+        });
+
+        // Boss 撞击
+        if (this.boss && this.boss.alive && !this.boss.entering) {
+          const bs = this.boss.hitCircle();
+          players.forEach((pl) => {
+            if (!pl || pl.alive === false) return;
+            if (TG.dist2(bs.x, bs.y, pl.cx, pl.cy) <= (bs.r + pl.r - 4) * (bs.r + pl.r - 4)) pl.takeDamage(12);
+          });
+        }
+
+        // 道具拾取（所有玩家都可拾取）
+        TG.powerups.forEach((pu) => {
+          if (!pu.alive) return;
+          players.forEach((pl) => {
+            if (!pl || pl.alive === false || !pu.alive) return;
+            if (TG.dist2(pu.x, pu.y, pl.cx, pl.cy) <= (pu.r + pl.r) * (pu.r + pl.r)) {
+              TG.particles.pickup(pu.x, pu.y, pu.color);
+              pl.applyPowerup(pu.type);
+              pu.alive = false;
+            }
+          });
+        });
+      }
+
+      // PK 模式：玩家子弹可打另一方玩家
+      if (this.gameMode === 'pk') {
+        TG.bullets.forEach((b) => {
+          if (b.team !== 'player' || !b.alive) return;
+          players.forEach((pl) => {
+            if (!pl || pl.alive === false) return;
+            // 子弹不能打自己
+            if (b.owner === pl.pidx) return;
+            if (TG.dist2(b.x, b.y, pl.cx, pl.cy) <= (b.r + pl.r - 2) * (b.r + pl.r - 2)) {
+              if (pl.shield > 0 || pl.invuln > 0) {
+                b.alive = false;
+                TG.particles.hit(b.x, b.y, Math.random() * TG.TAU, pl.accent);
+              } else if (pl.takeDamage(b.dmg, b.owner)) {
+                b.alive = false;
+                this._onPKHit(b.owner, b.dmg);
+              }
+            }
+          });
+        });
+      }
+    }
+
+    // ============== 结算 ==============
+    _finishBattle(win, surrendered) {
+      // PK 模式：根据胜者判定
+      if (this.gameMode === 'pk') {
+        win = this._pkWinner === 0;
+        const total = this.score + this.score2;
+        if (total > this.bestScore) { this.bestScore = total; TG.store.set('tk_best', this.bestScore); }
+      } else {
+        if (this.score > this.bestScore) { this.bestScore = this.score; TG.store.set('tk_best', this.bestScore); }
+      }
+      // ====== 通关成就综合检查（在 endBattle 清理前执行） ======
+      if (this.gameMode === 'pk' && this._pkWinner !== null) {
+        // PK 模式胜者获得决斗之王
+        this.ach.check('win', { pk: true });
+      } else if (win) {
+        // 单人/合作通关：检查多种条件
+        this.ach.check('win', {
+          coop: this.gameMode === 'coop',
+          inferno: this.selectedLevel === 'inferno',
+          noItems: this.stats.powerups === 0,           // 苦修战士：整局未拾取道具
+          clear3: this.stats.clearUsed >= 3,             // 三重净化：使用 3 次清屏
+          noSkill: this.stats.shieldUsed === 0 && this.stats.clearUsed === 0, // 禁欲行者
+          noDamage: !this.stats.tookDamage,             // 不坏金身：整局无伤
+        });
+      }
+      this._newAch = new Set();
+      this.audio.stopMusic();
+      this.endBattle(false);
+      this.ui.showResults(win);
+      this.state = 'results';
+      this.ui.show('results');
+      this.timeScale = 1;
+    }
+
+    // ============== 渲染 ==============
+    render() {
+      const ctx = this.ctx;
+      ctx.save();
+      // 屏幕震动偏移
+      let sx = 0, sy = 0;
+      if (this.shakeT > 0 && this.shakeAmp > 0.2) {
+        const k = Math.max(0, this.shakeT / this.shakeDur) * this.shakeAmp;
+        sx = TG.rand(-k, k); sy = TG.rand(-k, k);
+      }
+      ctx.translate(sx, sy);
+
+      // 背景
+      this._renderBg(ctx);
+
+      if (this.state === 'battle' || this.state === 'pause' || this.cg) {
+        if (this.gameMode !== 'pk') {
+          TG.powerups.render(ctx);
+          TG.enemies.render(ctx);
+        }
+        if (this.boss && this.boss.alive) this.boss.render(ctx);
+        if (this.player && this.player.alive !== false) this.player.render(ctx);
+        if (this.player2 && this.player2.alive !== false) this.player2.render(ctx);
+        TG.bullets.render(ctx);
+        TG.particles.render(ctx);
+        TG.floatTexts.render(ctx);
+      }
+
+      // 红屏闪
+      if (this.redFlashV > 0) {
+        ctx.fillStyle = `rgba(255,40,60,${this.redFlashV * 0.4})`;
+        ctx.fillRect(-sx - 50, -sy - 50, this.W + 100, this.H + 100);
+      }
+
+      // CG 覆盖（胜利/失败）
+      if (this.cg) this._renderCG(ctx);
+
+      ctx.restore();
+    }
+
+    _renderBg(ctx) {
+      // 深空渐变
+      const g = ctx.createLinearGradient(0, 0, 0, this.H);
+      g.addColorStop(0, '#05060f'); g.addColorStop(0.5, '#0a0f1f'); g.addColorStop(1, '#070314');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, this.W, this.H);
+      // 星
+      const sp = this._starSpeed || 0.4;
+      ctx.fillStyle = '#cfe6ff';
+      for (const s of this.stars) {
+        let y = (s.y * this.H + performance.now() / 1000 * sp * 40 * s.z) % this.H;
+        if (y < 0) y += this.H;
+        const x = s.x * this.W;
+        ctx.globalAlpha = s.z * 0.9;
+        ctx.fillRect(x, y, s.s, s.s);
+      }
+      ctx.globalAlpha = 1;
+      // 远景网格（战斗时）
+      if (this.state === 'battle') {
+        ctx.strokeStyle = 'rgba(60,120,200,0.06)'; ctx.lineWidth = 1;
+        const off = (performance.now() / 1000 * 30) % 60;
+        for (let y = -60 + off; y < this.H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.W, y); ctx.stroke(); }
+      }
+    }
+
+    _renderCG(ctx) {
+      const t = this.cgT;
+      if (this.cg === 'victory') {
+        const a = Math.min(1, t / 0.5);
+        ctx.fillStyle = `rgba(8,20,40,${0.5 * a})`;
+        ctx.fillRect(0, 0, this.W, this.H);
+        // 光柱
+        ctx.save();
+        ctx.translate(this.W / 2, this.H / 2);
+        ctx.globalAlpha = Math.min(1, t / 0.8);
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, this.H * 0.6);
+        grad.addColorStop(0, 'rgba(120,255,200,0.5)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad; ctx.fillRect(-this.W, -this.H, this.W * 2, this.H * 2);
+        ctx.restore();
+        ctx.fillStyle = '#9bffd8'; ctx.textAlign = 'center'; ctx.font = 'bold 56px "Segoe UI", sans-serif';
+        ctx.globalAlpha = Math.min(1, t / 0.6);
+        // PK 模式显示胜者
+        const cgText = (this.gameMode === 'pk' && this._pkWinner !== null)
+          ? 'P' + (this._pkWinner + 1) + '  胜  利'
+          : '胜  利';
+        ctx.fillText(cgText, this.W / 2, this.H / 2);
+        ctx.globalAlpha = 1;
+      } else if (this.cg === 'defeat') {
+        const a = Math.min(1, t / 0.6);
+        ctx.fillStyle = `rgba(20,0,6,${0.6 * a})`;
+        ctx.fillRect(0, 0, this.W, this.H);
+        ctx.fillStyle = '#ff5a7a'; ctx.textAlign = 'center'; ctx.font = 'bold 56px "Segoe UI", sans-serif';
+        ctx.globalAlpha = Math.min(1, t / 0.6);
+        ctx.fillText('防 线 失 守', this.W / 2, this.H / 2);
+        ctx.globalAlpha = 1;
+      } else if (this.cg === 'level-transition') {
+        // 关卡过渡 CG：分三段文字
+        const a = Math.min(1, t / 0.5);   // 整体暗化
+        ctx.fillStyle = `rgba(5,10,25,${0.65 * a})`;
+        ctx.fillRect(0, 0, this.W, this.H);
+        ctx.textAlign = 'center';
+        // 副标题
+        ctx.font = '20px "Segoe UI", sans-serif';
+        ctx.fillStyle = '#7fd8ff';
+        if (t > 0.3) {
+          ctx.globalAlpha = Math.min(1, (t - 0.3) / 0.4);
+          ctx.fillText('— 第 ' + (this.level) + ' 关  通  关 —', this.W / 2, this.H / 2 - 50);
+        }
+        // 主标题
+        ctx.font = 'bold 48px "Segoe UI", sans-serif';
+        if (t > 1.0) {
+          ctx.globalAlpha = Math.min(1, (t - 1.0) / 0.5);
+          // 光晕
+          const glow = ctx.createRadialGradient(this.W / 2, this.H / 2, 0, this.W / 2, this.H / 2, 300);
+          glow.addColorStop(0, 'rgba(120,180,255,0.3)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = glow; ctx.fillRect(0, 0, this.W, this.H);
+          ctx.fillStyle = '#9be0ff';
+          ctx.fillText('进入第 ' + (this.level + 1) + ' 关', this.W / 2, this.H / 2 + 10);
+        }
+        // 提示
+        if (t > 1.8) {
+          ctx.font = '18px "Segoe UI", sans-serif';
+          ctx.globalAlpha = Math.min(1, (t - 1.8) / 0.4) * (t > 2.7 ? Math.max(0, 1 - (t - 2.7) / 0.3) : 1);
+          ctx.fillStyle = '#ffd24a';
+          ctx.fillText('深 渊 反 扑 · 准 备 战 斗', this.W / 2, this.H / 2 + 60);
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  TG.Game = Game;
+})(window.TG = window.TG || {});
+
+
+/* ===== main.js ===== */
+/* main.js — 启动入口
+ *   - 实例化 Game
+ *   - 首次用户交互时初始化音频并播放主菜单 BGM
+ */
+(function () {
+  'use strict';
+  function boot() {
+    window.TG_GAME = new TG.Game();
+    const startAudio = () => {
+      TG.audio.init();
+      TG.audio.resume();
+      if (TG.audio.musicOn && TG_GAME.state === 'menu') TG.audio.playMusic('menu');
+    };
+    // 浏览器策略：需用户手势后才能播音
+    ['pointerdown', 'keydown', 'touchstart'].forEach((ev) =>
+      window.addEventListener(ev, startAudio, { once: true, passive: true })
+    );
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+
+
+</script>
+</body>
+</html>

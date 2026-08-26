@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#05060f" />
+  <title>坦克大战 · 星际守护者</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 游戏画布（背景星空 + 战斗渲染） -->
+  <canvas id="game"></canvas>
+  <!-- DOM 界面层（由 ui.js 动态构建） -->
+  <div id="ui-root"></div>
+
+  <!-- 模块加载（全局命名空间 TG，按依赖顺序） -->
+  <script src="js/utils.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/particle.js"></script>
+  <script src="js/bullet.js"></script>
+  <script src="js/powerup.js"></script>
+  <script src="js/enemy.js"></script>
+  <script src="js/boss.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/achievement.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
