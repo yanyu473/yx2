@@ -1301,6 +1301,7 @@ body.touch-on #mobile-fs-btn{display:flex}
 })();
 </script>
 
+
 <script>
 (function () {
   'use strict';
@@ -1309,6 +1310,16 @@ body.touch-on #mobile-fs-btn{display:flex}
   var bar = el.querySelector('.bl-bar i'),
       pct = el.querySelector('.bl-pct'),
       tip = el.querySelector('.bl-tip');
+
+  // 移动设备：默认切到游戏自带「性能优先」档（玩家在设置里改过则尊重其选择）
+  try {
+    var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+    var small = Math.min(screen.width, screen.height) <= 820;
+    if (isTouch && small && !localStorage.getItem('tk_quality')) {
+      localStorage.setItem('tk_quality', 'performance');
+    }
+  } catch (e) {}
+
   var finished = false;
   function setP(p) { bar.style.width = p + '%'; pct.textContent = p + '%'; }
   function finish() {
@@ -1319,27 +1330,43 @@ body.touch-on #mobile-fs-btn{display:flex}
       setTimeout(function () { el.remove(); }, 750);
     }, 280);
   }
-  // 游戏主对象挂载后收屏（main.js boot 时设置 window.TG_GAME）
   var watch = setInterval(function () {
     if (window.TG_GAME) { clearInterval(watch); finish(); }
   }, 120);
   setTimeout(function () { if (!finished) tip.textContent = '网络较慢，仍在加载…请保持页面打开'; }, 12000);
 
-  // 流式下载 game.bundle.js，展示真实进度；完成后注入执行
-  fetch('game.bundle.js', { cache: 'force-cache' }).then(function (r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    var total = +(r.headers.get('Content-Length') || 0);
-    if (!r.body || !total) return r.blob();
-    var reader = r.body.getReader(), got = 0, chunks = [];
-    function pump(part) {
-      if (part.value) { got += part.value.length; chunks.push(part.value); }
-      setP(Math.min(99, Math.round(got / total * 100)));
-      if (part.done) return new Blob(chunks, { type: 'text/javascript' });
+  // 4 路并行分片下载（弱网高延迟下吞吐显著提升，单段失败只重传该段）
+  var PARTS = ['game.part1.js', 'game.part2.js', 'game.part3.js', 'game.part4.js'];
+  var got = [], total = [], blobs = [];
+  function updP() {
+    var g = 0, t = 0;
+    for (var i = 0; i < PARTS.length; i++) { g += got[i] || 0; t += total[i] || 0; }
+    if (t > 0) setP(Math.min(99, Math.round(g / t * 100)));
+  }
+  function fetchPart(name, idx, attempt) {
+    return fetch(name, { cache: 'force-cache' }).then(function (r) {
+      if (!r.ok) throw new Error(name + ' HTTP ' + r.status);
+      total[idx] = +(r.headers.get('Content-Length') || 0);
+      if (!r.body || !total[idx]) {
+        return r.blob().then(function (b) { total[idx] = b.size; got[idx] = b.size; updP(); return b; });
+      }
+      var reader = r.body.getReader(), chunks = [], g = 0;
+      function pump(part) {
+        if (part.value) { g += part.value.length; chunks.push(part.value); }
+        got[idx] = g; updP();
+        if (part.done) return new Blob(chunks, { type: 'text/javascript' });
+        return reader.read().then(pump);
+      }
       return reader.read().then(pump);
-    }
-    return reader.read().then(pump);
-  }).then(function (blob) {
-    var url = URL.createObjectURL(blob);
+    }).catch(function (e) {
+      if (attempt < 2) { tip.textContent = '第' + (idx + 1) + '段重试中…'; return fetchPart(name, idx, attempt + 1); }
+      throw e;
+    });
+  }
+  Promise.all(PARTS.map(function (name, idx) {
+    return fetchPart(name, idx, 0).then(function (b) { blobs[idx] = b; });
+  })).then(function () {
+    var url = URL.createObjectURL(new Blob(blobs, { type: 'text/javascript' }));
     var s = document.createElement('script');
     s.src = url;
     s.onload = function () { URL.revokeObjectURL(url); };
@@ -1351,6 +1378,7 @@ body.touch-on #mobile-fs-btn{display:flex}
   });
 })();
 </script>
+
 
 
 <script>
