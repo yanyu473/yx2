@@ -780,6 +780,22 @@ body.touch-on .touch-skillbar { display: flex; }
 .bl-bar i{display:block;width:0%;height:100%;border-radius:3px;background:linear-gradient(90deg,#3ad1ff,#c06bff);box-shadow:0 0 10px rgba(58,209,255,.8);transition:width .18s ease}
 .bl-pct{font-size:22px;font-weight:700;color:#9bf6ff;letter-spacing:1px;text-shadow:0 0 10px rgba(58,209,255,.6)}
 .bl-tip{margin-top:14px;font-size:12.5px;color:#8fa8c8;letter-spacing:1px}
+
+/* ---------- 移动端适配增强 ---------- */
+#mobile-fs-btn{position:fixed;top:10px;right:10px;z-index:99998;width:42px;height:42px;border-radius:50%;
+  border:1px solid rgba(80,160,255,.45);background:rgba(12,20,40,.6);color:#9bf6ff;cursor:pointer;
+  display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);
+  box-shadow:0 0 8px rgba(58,209,255,.35);padding:0;-webkit-tap-highlight-color:transparent}
+#mobile-fs-btn svg{width:20px;height:20px;display:block;filter:drop-shadow(0 0 4px rgba(58,209,255,.8))}
+#mobile-fs-btn:active{background:rgba(58,209,255,.28)}
+body.touch-on #mobile-fs-btn{display:flex}
+#mobile-orient-tip{position:fixed;top:0;left:0;right:0;z-index:99997;display:none;justify-content:center;
+  padding:9px 14px;background:linear-gradient(180deg,rgba(10,16,34,.94),rgba(10,16,34,.82));
+  border-bottom:1px solid rgba(80,160,255,.35);color:#9bf6ff;font-size:13px;letter-spacing:1px;
+  font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;align-items:center;gap:8px;
+  transition:opacity .4s ease;pointer-events:none}
+#mobile-orient-tip.show{display:flex;opacity:1}
+#mobile-orient-tip b{color:#ffd24a;font-weight:700}
 </style>
 </head>
 <body><div id="boot-loader"><div class="bl-core"><div class="bl-orbit"></div><div class="bl-title">星轨守卫</div><div class="bl-sub">星 际 守 护 者 · 加 载 中</div><div class="bl-bar"><i></i></div><div class="bl-pct">0%</div><div class="bl-tip">首次加载约 2 MB，正在建立星际链路…</div></div></div>
@@ -1336,5 +1352,67 @@ body.touch-on .touch-skillbar { display: flex; }
 })();
 </script>
 
+
+<script>
+/* 移动端适配增强：全屏+横屏锁定+竖屏提示（独立注入，不侵入游戏逻辑） */
+(function () {
+  'use strict';
+  var DE = document.documentElement;
+  var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0;
+  if (!isTouch) return;
+
+  function fsElem() {
+    return DE.requestFullscreen || DE.webkitRequestFullscreen || DE.mozRequestFullScreen || DE.msRequestFullscreen;
+  }
+
+  // ---- 全屏按钮 ----
+  var btn = document.createElement('button');
+  btn.id = 'mobile-fs-btn';
+  btn.setAttribute('aria-label', '全屏');
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#9bf6ff" stroke-width="2.4" '
+    + 'stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    var open = document.fullscreenElement || document.webkitFullscreenElement;
+    if (open) {
+      (document.exitFullscreen || document.webkitExitFullscreen || function () {}).call(document);
+      return;
+    }
+    var req = fsElem();
+    if (!req) return;
+    try {
+      var p = req.call(DE);
+      var lock = function () {
+        try {
+          if (screen.orientation && screen.orientation.lock)
+            screen.orientation.lock('landscape').catch(function () {});
+        } catch (err) {}
+      };
+      if (p && p.then) p.then(lock).catch(function () {}); else lock();
+    } catch (err) {}
+  });
+  document.body.appendChild(btn);
+
+  // ---- 竖屏进入战斗时提示横屏 ----
+  var tip = document.createElement('div');
+  tip.id = 'mobile-orient-tip';
+  tip.innerHTML = '竖屏玩游戏可能不够尽兴，建议 <b>横屏</b> 体验更佳';
+  document.body.appendChild(tip);
+  var prevState = '', hideT = 0;
+  setInterval(function () {
+    var g = window.TG_GAME;
+    if (!g) return;
+    var st = g.state || '';
+    var portrait = window.innerHeight > window.innerWidth;
+    if (st === 'battle' && prevState !== 'battle' && portrait) {
+      tip.classList.add('show');
+      clearTimeout(hideT);
+      hideT = setTimeout(function () { tip.classList.remove('show'); }, 4200);
+    }
+    prevState = st;
+  }, 500);
+})();
+</script>
 </body>
 </html>
