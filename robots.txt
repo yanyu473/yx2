@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://yanyu473.github.io/yx2/sitemap.xml
